@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include <lvgl.h>
+#include <ui/ui.h>
 
 // Onboard 1.47" ST7789 wiring
 // https://docs.waveshare.com/ESP32-C6-LCD-1.47?variant=ESP32-C6-LCD-1.47
@@ -65,15 +66,11 @@ void setup() {
     lv_display_set_flush_cb(display, flushIntoDisplay);
     lv_display_set_buffers(display, tempCanvasBuffer, nullptr, sizeof(tempCanvasBuffer), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x0B0E14), 0);
-    lv_obj_t *label = lv_label_create(lv_screen_active());
-    lv_label_set_text(label, "TPMS Monitor");
-    lv_obj_set_style_text_color(label, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_28, 0);
-    lv_obj_center(label);
+    ui_init();
 }
 
 void loop() {
+    ui_tick();
     lv_timer_handler();
     delay(5);
 }
