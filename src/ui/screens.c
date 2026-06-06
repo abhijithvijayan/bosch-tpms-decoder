@@ -129,9 +129,9 @@ void create_screen_main() {
                     {
                         lv_obj_t *parent_obj = obj;
                         {
-                            // Front Left Card
+                            // Sensor 1 Card
                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                            objects.front_left_card = obj;
+                            objects.sensor_1_card = obj;
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, 154, 70);
                             lv_obj_set_style_bg_color(obj, lv_color_hex(0x161d2b), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -150,9 +150,9 @@ void create_screen_main() {
                             {
                                 lv_obj_t *parent_obj = obj;
                                 {
-                                    // Top Row
+                                    // Sensor 1 Card Top Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.top_row = obj;
+                                    objects.sensor_1_card_top_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -168,15 +168,18 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 1 Card Top Row Label
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj2 = obj;
+                                            objects.sensor_1_card_top_row_label = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x5da3ff), LV_PART_MAIN | LV_STATE_DEFAULT);
                                             lv_label_set_text_static(obj, "FL");
                                         }
                                         {
+                                            // Sensor 1 Card Top Row Temperature
                                             lv_obj_t *obj = lv_label_create(parent_obj);
+                                            objects.sensor_1_card_top_row_temperature = obj;
                                             lv_obj_set_pos(obj, 98, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_label_set_text_static(obj, "33°C");
@@ -184,9 +187,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Middle Row
+                                    // Sensor 1 Card Middle Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.middle_row = obj;
+                                    objects.sensor_1_card_middle_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -206,8 +209,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 1 Card Middle Row Pressure
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj3 = obj;
+                                            objects.sensor_1_card_middle_row_pressure = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_34, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -215,8 +219,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "33");
                                         }
                                         {
+                                            // Sensor 1 Card Middle Row Pressure Unit
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj4 = obj;
+                                            objects.sensor_1_card_middle_row_pressure_unit = obj;
                                             lv_obj_set_pos(obj, 40, 17);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x8a93a6), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -226,9 +231,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Bottom Row
+                                    // Sensor 1 Card Bottom Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.bottom_row = obj;
+                                    objects.sensor_1_card_bottom_row = obj;
                                     lv_obj_set_pos(obj, 1, 51);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -246,8 +251,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 1 Card Bottom Row Last Updated
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj5 = obj;
+                                            objects.sensor_1_card_bottom_row_last_updated = obj;
                                             lv_obj_set_pos(obj, 90, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x5b6373), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -255,9 +261,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "34s");
                                         }
                                         {
-                                            // Battery Group
+                                            // Sensor 1 Card Bottom Row Battery Group
                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                            objects.battery_group = obj;
+                                            objects.sensor_1_card_bottom_row_battery_group = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -275,8 +281,9 @@ void create_screen_main() {
                                             {
                                                 lv_obj_t *parent_obj = obj;
                                                 {
+                                                    // Sensor 1 Card Bottom Row Battery Percentage
                                                     lv_obj_t *obj = lv_label_create(parent_obj);
-                                                    objects.obj6 = obj;
+                                                    objects.sensor_1_card_bottom_row_battery_percentage = obj;
                                                     lv_obj_set_pos(obj, -1, 0);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_text_color(obj, lv_color_hex(0x4ade80), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -284,9 +291,9 @@ void create_screen_main() {
                                                     lv_label_set_text_static(obj, "100%");
                                                 }
                                                 {
-                                                    // Battery
+                                                    // Sensor 1 Card Bottom Row Battery Icon
                                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                    objects.battery = obj;
+                                                    objects.sensor_1_card_bottom_row_battery_icon = obj;
                                                     lv_obj_set_pos(obj, -23, 2);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -300,7 +307,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj7 = obj;
+                                                            objects.obj2 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 100, LV_ANIM_OFF);
@@ -318,7 +325,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj8 = obj;
+                                                            objects.obj3 = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -339,9 +346,9 @@ void create_screen_main() {
                             }
                         }
                         {
-                            // Front Right Card
+                            // Sensor 2 Card
                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                            objects.front_right_card = obj;
+                            objects.sensor_2_card = obj;
                             lv_obj_set_pos(obj, 160, 0);
                             lv_obj_set_size(obj, 154, 70);
                             lv_obj_set_style_bg_color(obj, lv_color_hex(0x2a2410), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -360,9 +367,9 @@ void create_screen_main() {
                             {
                                 lv_obj_t *parent_obj = obj;
                                 {
-                                    // Top Row
+                                    // Sensor 2 Card Top Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.top_row = obj;
+                                    objects.sensor_2_card_top_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -378,15 +385,18 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 2 Card Top Row Label
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj9 = obj;
+                                            objects.sensor_2_card_top_row_label = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x5da3ff), LV_PART_MAIN | LV_STATE_DEFAULT);
                                             lv_label_set_text_static(obj, "RL");
                                         }
                                         {
+                                            // Sensor 2 Card Top Row Temperature
                                             lv_obj_t *obj = lv_label_create(parent_obj);
+                                            objects.sensor_2_card_top_row_temperature = obj;
                                             lv_obj_set_pos(obj, 98, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_label_set_text_static(obj, "33°C");
@@ -394,9 +404,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Middle Row
+                                    // Sensor 2 Card Middle Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.middle_row = obj;
+                                    objects.sensor_2_card_middle_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -416,8 +426,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 2 Card Middle Row Pressure
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj10 = obj;
+                                            objects.sensor_2_card_middle_row_pressure = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_34, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -425,8 +436,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "20");
                                         }
                                         {
+                                            // Sensor 2 Card Middle Row Pressure Unit
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj11 = obj;
+                                            objects.sensor_2_card_middle_row_pressure_unit = obj;
                                             lv_obj_set_pos(obj, 40, 17);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x8a93a6), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -436,9 +448,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Bottom Row
+                                    // Sensor 2 Card Bottom Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.bottom_row = obj;
+                                    objects.sensor_2_card_bottom_row = obj;
                                     lv_obj_set_pos(obj, 1, 51);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -456,8 +468,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 2 Card Bottom Row Last Updated
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj12 = obj;
+                                            objects.sensor_2_card_bottom_row_last_updated = obj;
                                             lv_obj_set_pos(obj, 90, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x5b6373), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -465,9 +478,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "34s");
                                         }
                                         {
-                                            // Battery Group
+                                            // Sensor 2 Card Bottom Row Battery Group
                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                            objects.battery_group = obj;
+                                            objects.sensor_2_card_bottom_row_battery_group = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -485,8 +498,9 @@ void create_screen_main() {
                                             {
                                                 lv_obj_t *parent_obj = obj;
                                                 {
+                                                    // Sensor 2 Card Bottom Row Battery Percentage
                                                     lv_obj_t *obj = lv_label_create(parent_obj);
-                                                    objects.obj13 = obj;
+                                                    objects.sensor_2_card_bottom_row_battery_percentage = obj;
                                                     lv_obj_set_pos(obj, -1, 0);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_text_color(obj, lv_color_hex(0xfacc15), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -494,9 +508,9 @@ void create_screen_main() {
                                                     lv_label_set_text_static(obj, "34%");
                                                 }
                                                 {
-                                                    // Battery
+                                                    // Sensor 2 Card Bottom Row Battery Icon
                                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                    objects.battery = obj;
+                                                    objects.sensor_2_card_bottom_row_battery_icon = obj;
                                                     lv_obj_set_pos(obj, -23, 2);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -510,7 +524,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj14 = obj;
+                                                            objects.obj4 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 34, LV_ANIM_OFF);
@@ -528,7 +542,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj15 = obj;
+                                                            objects.obj5 = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -549,9 +563,9 @@ void create_screen_main() {
                             }
                         }
                         {
-                            // Rear Left Card
+                            // Sensor 3 Card
                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                            objects.rear_left_card = obj;
+                            objects.sensor_3_card = obj;
                             lv_obj_set_pos(obj, 2, 70);
                             lv_obj_set_size(obj, 154, 70);
                             lv_obj_set_style_bg_color(obj, lv_color_hex(0x2a1113), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -570,9 +584,9 @@ void create_screen_main() {
                             {
                                 lv_obj_t *parent_obj = obj;
                                 {
-                                    // Top Row
+                                    // Sensor 3 Card Top Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.top_row = obj;
+                                    objects.sensor_3_card_top_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -588,15 +602,18 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 3 Card Top Row Label
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj16 = obj;
+                                            objects.sensor_3_card_top_row_label = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0xff5a5a), LV_PART_MAIN | LV_STATE_DEFAULT);
                                             lv_label_set_text_static(obj, "RL");
                                         }
                                         {
+                                            // Sensor 3 Card Top Row Temperature
                                             lv_obj_t *obj = lv_label_create(parent_obj);
+                                            objects.sensor_3_card_top_row_temperature = obj;
                                             lv_obj_set_pos(obj, 98, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_label_set_text_static(obj, "33°C");
@@ -604,9 +621,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Middle Row
+                                    // Sensor 3 Card Middle Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.middle_row = obj;
+                                    objects.sensor_3_card_middle_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -626,8 +643,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 3 Card Middle Row Pressure
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj17 = obj;
+                                            objects.sensor_3_card_middle_row_pressure = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_34, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -635,8 +653,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "0");
                                         }
                                         {
+                                            // Sensor 3 Card Middle Row Pressure Unit
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj18 = obj;
+                                            objects.sensor_3_card_middle_row_pressure_unit = obj;
                                             lv_obj_set_pos(obj, 40, 17);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x8a93a6), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -646,9 +665,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Bottom Row
+                                    // Sensor 3 Card Bottom Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.bottom_row = obj;
+                                    objects.sensor_3_card_bottom_row = obj;
                                     lv_obj_set_pos(obj, 1, 51);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -666,8 +685,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 3 Card Bottom Row Last Updated
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj19 = obj;
+                                            objects.sensor_3_card_bottom_row_last_updated = obj;
                                             lv_obj_set_pos(obj, 90, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x5b6373), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -675,9 +695,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "34s");
                                         }
                                         {
-                                            // Battery Group
+                                            // Sensor 3 Card Bottom Row Battery Group
                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                            objects.battery_group = obj;
+                                            objects.sensor_3_card_bottom_row_battery_group = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -695,8 +715,9 @@ void create_screen_main() {
                                             {
                                                 lv_obj_t *parent_obj = obj;
                                                 {
+                                                    // Sensor 3 Card Bottom Row Battery Percentage
                                                     lv_obj_t *obj = lv_label_create(parent_obj);
-                                                    objects.obj20 = obj;
+                                                    objects.sensor_3_card_bottom_row_battery_percentage = obj;
                                                     lv_obj_set_pos(obj, -1, 5);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_text_color(obj, lv_color_hex(0x4ade80), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -704,9 +725,9 @@ void create_screen_main() {
                                                     lv_label_set_text_static(obj, "31%");
                                                 }
                                                 {
-                                                    // Battery
+                                                    // Sensor 3 Card Bottom Row Battery Icon
                                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                    objects.battery = obj;
+                                                    objects.sensor_3_card_bottom_row_battery_icon = obj;
                                                     lv_obj_set_pos(obj, -23, 2);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -720,7 +741,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj21 = obj;
+                                                            objects.obj6 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 31, LV_ANIM_OFF);
@@ -738,7 +759,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj22 = obj;
+                                                            objects.obj7 = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -759,9 +780,9 @@ void create_screen_main() {
                             }
                         }
                         {
-                            // Rear Right Card
+                            // Sensor 4 Card
                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                            objects.rear_right_card = obj;
+                            objects.sensor_4_card = obj;
                             lv_obj_set_pos(obj, 152, 78);
                             lv_obj_set_size(obj, 154, 70);
                             lv_obj_set_style_bg_color(obj, lv_color_hex(0x161d2b), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -781,9 +802,9 @@ void create_screen_main() {
                             {
                                 lv_obj_t *parent_obj = obj;
                                 {
-                                    // Top Row
+                                    // Sensor 4 Card Top Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.top_row = obj;
+                                    objects.sensor_4_card_top_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -799,16 +820,18 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 4 Card Top Row Label
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj23 = obj;
+                                            objects.sensor_4_card_top_row_label = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x386095), LV_PART_MAIN | LV_STATE_DEFAULT);
                                             lv_label_set_text_static(obj, "RR");
                                         }
                                         {
+                                            // Sensor 4 Card Top Row Temperature
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj24 = obj;
+                                            objects.sensor_4_card_top_row_temperature = obj;
                                             lv_obj_set_pos(obj, 98, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x919395), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -817,9 +840,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Middle Row
+                                    // Sensor 4 Card Middle Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.middle_row = obj;
+                                    objects.sensor_4_card_middle_row = obj;
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -839,8 +862,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 4 Card Middle Row Pressure
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj25 = obj;
+                                            objects.sensor_4_card_middle_row_pressure = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_34, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -848,8 +872,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "62");
                                         }
                                         {
+                                            // Sensor 4 Card Middle Row Pressure Unit
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj26 = obj;
+                                            objects.sensor_4_card_middle_row_pressure_unit = obj;
                                             lv_obj_set_pos(obj, 40, 17);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x515764), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -859,9 +884,9 @@ void create_screen_main() {
                                     }
                                 }
                                 {
-                                    // Bottom Row
+                                    // Sensor 4 Card Bottom Row
                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                    objects.bottom_row = obj;
+                                    objects.sensor_4_card_bottom_row = obj;
                                     lv_obj_set_pos(obj, 1, 51);
                                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -879,8 +904,9 @@ void create_screen_main() {
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
+                                            // Sensor 4 Card Bottom Row Last Updated
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            objects.obj27 = obj;
+                                            objects.sensor_4_card_bottom_row_last_updated = obj;
                                             lv_obj_set_pos(obj, 90, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x8e7715), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -888,9 +914,9 @@ void create_screen_main() {
                                             lv_label_set_text_static(obj, "42m");
                                         }
                                         {
-                                            // Battery Group
+                                            // Sensor 4 Card Bottom Row Battery Group
                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                            objects.battery_group = obj;
+                                            objects.sensor_4_card_bottom_row_battery_group = obj;
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -908,8 +934,9 @@ void create_screen_main() {
                                             {
                                                 lv_obj_t *parent_obj = obj;
                                                 {
+                                                    // Sensor 4 Card Bottom Row Battery Percentage
                                                     lv_obj_t *obj = lv_label_create(parent_obj);
-                                                    objects.obj28 = obj;
+                                                    objects.sensor_4_card_bottom_row_battery_percentage = obj;
                                                     lv_obj_set_pos(obj, -1, 0);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_text_color(obj, lv_color_hex(0x2e804f), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -917,9 +944,9 @@ void create_screen_main() {
                                                     lv_label_set_text_static(obj, "88%");
                                                 }
                                                 {
-                                                    // Battery
+                                                    // Sensor 4 Card Bottom Row Battery Icon
                                                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                    objects.battery = obj;
+                                                    objects.sensor_4_card_bottom_row_battery_icon = obj;
                                                     lv_obj_set_pos(obj, -23, 2);
                                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                                     lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -933,7 +960,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj29 = obj;
+                                                            objects.obj8 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 80, LV_ANIM_OFF);
@@ -951,7 +978,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj30 = obj;
+                                                            objects.obj9 = obj;
                                                             lv_obj_set_pos(obj, 20, 4);
                                                             lv_obj_set_size(obj, 2, 3);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -989,59 +1016,62 @@ void delete_screen_main() {
     objects.toast = 0;
     objects.obj1 = 0;
     objects.cards = 0;
-    objects.front_left_card = 0;
-    objects.top_row = 0;
+    objects.sensor_1_card = 0;
+    objects.sensor_1_card_top_row = 0;
+    objects.sensor_1_card_top_row_label = 0;
+    objects.sensor_1_card_top_row_temperature = 0;
+    objects.sensor_1_card_middle_row = 0;
+    objects.sensor_1_card_middle_row_pressure = 0;
+    objects.sensor_1_card_middle_row_pressure_unit = 0;
+    objects.sensor_1_card_bottom_row = 0;
+    objects.sensor_1_card_bottom_row_last_updated = 0;
+    objects.sensor_1_card_bottom_row_battery_group = 0;
+    objects.sensor_1_card_bottom_row_battery_percentage = 0;
+    objects.sensor_1_card_bottom_row_battery_icon = 0;
     objects.obj2 = 0;
-    objects.middle_row = 0;
     objects.obj3 = 0;
+    objects.sensor_2_card = 0;
+    objects.sensor_2_card_top_row = 0;
+    objects.sensor_2_card_top_row_label = 0;
+    objects.sensor_2_card_top_row_temperature = 0;
+    objects.sensor_2_card_middle_row = 0;
+    objects.sensor_2_card_middle_row_pressure = 0;
+    objects.sensor_2_card_middle_row_pressure_unit = 0;
+    objects.sensor_2_card_bottom_row = 0;
+    objects.sensor_2_card_bottom_row_last_updated = 0;
+    objects.sensor_2_card_bottom_row_battery_group = 0;
+    objects.sensor_2_card_bottom_row_battery_percentage = 0;
+    objects.sensor_2_card_bottom_row_battery_icon = 0;
     objects.obj4 = 0;
-    objects.bottom_row = 0;
     objects.obj5 = 0;
-    objects.battery_group = 0;
+    objects.sensor_3_card = 0;
+    objects.sensor_3_card_top_row = 0;
+    objects.sensor_3_card_top_row_label = 0;
+    objects.sensor_3_card_top_row_temperature = 0;
+    objects.sensor_3_card_middle_row = 0;
+    objects.sensor_3_card_middle_row_pressure = 0;
+    objects.sensor_3_card_middle_row_pressure_unit = 0;
+    objects.sensor_3_card_bottom_row = 0;
+    objects.sensor_3_card_bottom_row_last_updated = 0;
+    objects.sensor_3_card_bottom_row_battery_group = 0;
+    objects.sensor_3_card_bottom_row_battery_percentage = 0;
+    objects.sensor_3_card_bottom_row_battery_icon = 0;
     objects.obj6 = 0;
-    objects.battery = 0;
     objects.obj7 = 0;
+    objects.sensor_4_card = 0;
+    objects.sensor_4_card_top_row = 0;
+    objects.sensor_4_card_top_row_label = 0;
+    objects.sensor_4_card_top_row_temperature = 0;
+    objects.sensor_4_card_middle_row = 0;
+    objects.sensor_4_card_middle_row_pressure = 0;
+    objects.sensor_4_card_middle_row_pressure_unit = 0;
+    objects.sensor_4_card_bottom_row = 0;
+    objects.sensor_4_card_bottom_row_last_updated = 0;
+    objects.sensor_4_card_bottom_row_battery_group = 0;
+    objects.sensor_4_card_bottom_row_battery_percentage = 0;
+    objects.sensor_4_card_bottom_row_battery_icon = 0;
     objects.obj8 = 0;
-    objects.front_right_card = 0;
-    objects.top_row = 0;
     objects.obj9 = 0;
-    objects.middle_row = 0;
-    objects.obj10 = 0;
-    objects.obj11 = 0;
-    objects.bottom_row = 0;
-    objects.obj12 = 0;
-    objects.battery_group = 0;
-    objects.obj13 = 0;
-    objects.battery = 0;
-    objects.obj14 = 0;
-    objects.obj15 = 0;
-    objects.rear_left_card = 0;
-    objects.top_row = 0;
-    objects.obj16 = 0;
-    objects.middle_row = 0;
-    objects.obj17 = 0;
-    objects.obj18 = 0;
-    objects.bottom_row = 0;
-    objects.obj19 = 0;
-    objects.battery_group = 0;
-    objects.obj20 = 0;
-    objects.battery = 0;
-    objects.obj21 = 0;
-    objects.obj22 = 0;
-    objects.rear_right_card = 0;
-    objects.top_row = 0;
-    objects.obj23 = 0;
-    objects.obj24 = 0;
-    objects.middle_row = 0;
-    objects.obj25 = 0;
-    objects.obj26 = 0;
-    objects.bottom_row = 0;
-    objects.obj27 = 0;
-    objects.battery_group = 0;
-    objects.obj28 = 0;
-    objects.battery = 0;
-    objects.obj29 = 0;
-    objects.obj30 = 0;
 }
 
 void tick_screen_main() {
