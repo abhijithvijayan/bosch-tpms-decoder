@@ -433,7 +433,7 @@ void create_screen_main() {
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_34, LV_PART_MAIN | LV_STATE_DEFAULT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0xfacc15), LV_PART_MAIN | LV_STATE_DEFAULT);
-                                            lv_label_set_text_static(obj, "20");
+                                            lv_label_set_text_static(obj, "63");
                                         }
                                         {
                                             // Sensor 2 Card Middle Row Pressure Unit
@@ -869,7 +869,7 @@ void create_screen_main() {
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_34, LV_PART_MAIN | LV_STATE_DEFAULT);
                                             lv_obj_set_style_text_color(obj, lv_color_hex(0x919395), LV_PART_MAIN | LV_STATE_DEFAULT);
-                                            lv_label_set_text_static(obj, "62");
+                                            lv_label_set_text_static(obj, "32");
                                         }
                                         {
                                             // Sensor 4 Card Middle Row Pressure Unit

@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include <lvgl.h>
+#include <NimBLEDevice.h>
+#include <mbedtls/aes.h>
 #include <ui/ui.h>
 
 // Onboard 1.47" ST7789 wiring
@@ -50,6 +52,107 @@ static void flushIntoDisplay(lv_display_t *display, const lv_area_t *area, uint8
     lv_display_flush_ready(display); // tell LVGL it may reuse the buffer
 }
 
+struct DataPacket {
+    bool ok;
+    int temperatureInCelsius;
+    int pressureInPsi;
+    int batteryPercent;
+};
+
+static const NimBLEUUID TPMS_SERVICE_UUID(static_cast<uint16_t>(0xFFE0)); // service UUID every Bosch sensor advertises
+constexpr int TPMS_INVALID = 0xFF4C; // per-field "no reading" sentinel
+// Static AES-128 key, hard-coded in every Bosch TPMS sensor.
+static constexpr uint8_t kAesKey[16] = { '#','@','T','r','l','2','0','1','8','-','l','e','s','p','l','$' };
+
+// little-endian u16 from a 2-byte slice
+static uint16_t leU16(const uint8_t *p) {
+    return p[0] | (p[1] << 8);
+}
+
+// sign-magnitude temperature: > 0x8000 means negative, value is (raw - 0x8000); /100 -> whole °C
+static int decodeTemp(const uint16_t raw) {
+    if (raw > 0x8000) {
+        return -(int)((raw - 0x8000) / 100);
+    }
+
+    return raw / 100;
+}
+
+// pressure: raw / 100 (native PSI)
+static int decodePressure(const uint16_t raw) {
+    return raw / 100;
+}
+
+// AES-128/ECB/NoPadding, single 16-byte block
+static bool aesDecryptBlock(const uint8_t cipher[16], uint8_t plain[16]) {
+    mbedtls_aes_context ctx; mbedtls_aes_init(&ctx);
+    const bool ok = mbedtls_aes_setkey_dec(&ctx, kAesKey, 128) == 0
+                 && mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, cipher, plain) == 0;
+    mbedtls_aes_free(&ctx);
+
+    return ok;
+}
+
+static DataPacket decodeFrame(const uint8_t *rawAdv, size_t len) {
+    DataPacket dp {
+        false,
+        TPMS_INVALID,
+        TPMS_INVALID,
+        0
+    };
+
+    // ciphertext lives at [15..31]
+    if (len < 31) {
+        return dp;
+    }
+
+    uint8_t pt[16];
+    if (!aesDecryptBlock(rawAdv + 15, pt)) {
+        return dp;
+    }
+
+    // structural check: header 0x16, trailer 0x15 0x14 — rejects non-TPMS junk on 0xFFE0
+    if (pt[0] != 0x16 || pt[14] != 0x15 || pt[15] != 0x14) {
+        return dp;
+    }
+
+    dp.ok = true;
+
+    uint16_t t = leU16(&pt[1]);        // temp, valid [-40, 125] °C
+    if (t != 0xFFFF) {
+        const int c = decodeTemp(t);
+        dp.temperatureInCelsius = (c < -40 || c > 125) ? TPMS_INVALID : c;
+    }
+
+    uint16_t pr = leU16(&pt[3]);       // pressure, valid [0, 217] PSI
+    if (pr != 0xFFFF) {
+        const int p = decodePressure(pr);
+        dp.pressureInPsi = (p < 0 || p > 217) ? TPMS_INVALID : p;
+    }
+
+    dp.batteryPercent = min(pt[5] & 0xFF, 100);   // battery, clamp ≤100
+
+    return dp;
+}
+
+class TpmsScanCallback : public NimBLEScanCallbacks {
+public : void onResult(const NimBLEAdvertisedDevice *dev) override {
+        if (!dev->isAdvertisingService(TPMS_SERVICE_UUID)) {
+            return;
+        }
+
+        const std::vector<uint8_t> &payload = dev->getPayload();
+        DataPacket dp = decodeFrame(payload.data(), payload.size());
+        if (!dp.ok) {
+            return;
+        }
+
+        Serial.printf("[%s] temp %d C  press %d PSI  batt %d%%  RSSI %d\n",
+                      dev->getAddress().toString().c_str(),
+                      dp.temperatureInCelsius, dp.pressureInPsi, dp.batteryPercent, dev->getRSSI());
+    }
+};
+
 void setup() {
     Serial.begin(115200);
 
@@ -61,12 +164,20 @@ void setup() {
 
     lv_init();
     lv_tick_set_cb(tickCallback);
-
     lv_display_t *display = lv_display_create(LANDSCAPE_SCREEN_WIDTH, LANDSCAPE_SCREEN_HEIGHT);
     lv_display_set_flush_cb(display, flushIntoDisplay);
     lv_display_set_buffers(display, tempCanvasBuffer, nullptr, sizeof(tempCanvasBuffer), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     ui_init();
+
+    NimBLEDevice::init("");
+    NimBLEScan *scan = NimBLEDevice::getScan();
+    scan->setScanCallbacks(new TpmsScanCallback());
+    scan->setActiveScan(false); // We only get advertisements passively
+    scan->setInterval(160); // 160 × 0.625ms = 100ms cycle
+    scan->setWindow(160); // window == interval -> radio listening 100% of the time
+    scan->setDuplicateFilter(false); // deliver EVERY advertisement, even from known devices
+    scan->start(0, false); // 0 = scan forever
 }
 
 void loop() {
