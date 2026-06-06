@@ -1,0 +1,36 @@
+# Environment variables
+.env
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# APK / IPA reverse-engineering artifacts (not redistributed)
+decoded-apk/
+Payload/
+META-INF/
+*.apk
+*.ipa
+*.smali
+iTunesArtwork
+iTunesMetadata.plist
+bugreport-*.zip
+tpms_sandbox/
+
+# PlatformIO build output
+.pio/
+
+# Generated from web/config.html by scripts/embed_html.sh
+include/config_page.h

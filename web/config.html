@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TPMS config</title>
+    <style>
+        body {
+            font-family: system-ui, Arial, sans-serif;
+            margin: 0;
+            background: #0f1117;
+            color: #e8ecf3;
+            padding: 14px;
+        }
+        h1 {
+            font-size: 18px;
+            margin: 0 0 2px;
+        }
+        .sub {
+            font-size: 13px;
+            color: #8a93a6;
+            margin: 0 0 14px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .cell {
+            background: #161d2b;
+            border: 2px solid #232c40;
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+        }
+        .cell.sel {
+            border-color: #3b82f6;
+        }
+        .cell.pend {
+            border-color: #f59e0b;
+        }
+        .lbl {
+            font-size: 14px;
+            font-weight: 600;
+            color: #5da3ff;
+        }
+        .mac {
+            font-size: 12px;
+            color: #6b7280;
+            font-family: monospace;
+        }
+        .psi {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .unit {
+            font-size: 12px;
+            color: #8a93a6;
+        }
+        .meta {
+            font-size: 12px;
+            color: #8a93a6;
+            margin-top: 4px;
+        }
+        .bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 10px;
+            background: #2a2410;
+            border: 1px solid #7a5a12;
+            border-radius: 8px;
+            color: #facc15;
+            font-size: 13px;
+        }
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 14px;
+        }
+        .hint {
+            font-size: 13px;
+            color: #8a93a6;
+        }
+        .saved {
+            color: #4ade80;
+        }
+        button {
+            font: inherit;
+            font-size: 13px;
+            padding: 7px 12px;
+            border-radius: 8px;
+            border: 1px solid #2c3550;
+            background: #1b2740;
+            color: #e8ecf3;
+            cursor: pointer;
+        }
+        button.primary {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        button:disabled {
+            opacity: 0.45;
+            cursor: default;
+        }
+        .pool {
+            margin-top: 18px;
+        }
+        .pool h2 {
+            font-size: 14px;
+            margin: 0 0 6px;
+            color: #cdd3df;
+        }
+        .chip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #11161f;
+            border: 2px solid #232c40;
+            border-radius: 8px;
+            padding: 9px 11px;
+            margin-top: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .chip.sel {
+            border-color: #3b82f6;
+        }
+        .wifi {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid #232c40;
+            display: none;
+        }
+        .wifi input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 9px;
+            margin-top: 6px;
+            border-radius: 8px;
+            border: 1px solid #2c3550;
+            background: #11161f;
+            color: #e8ecf3;
+            font: inherit;
+        }
+        .tip {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #5b6373;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+<h1>Tire mapping</h1>
+<p class="sub" id="sub">Loading…</p>
+<div class="grid" id="grid"></div>
+<div class="bar" id="bar">
+         <span id="bartext"></span
+         ><span style="flex-shrink: 0">
+            <button id="cancel">Cancel</button>
+            <button id="confirm" class="primary">Confirm</button></span
+>
+</div>
+<div class="row">
+         <span class="hint" id="hint"></span
+         ><span style="flex-shrink: 0">
+            <button id="reset" style="display: none">Reset</button>
+            <button id="save" class="primary">Save to device</button></span
+>
+</div>
+<div class="pool">
+    <h2>Detected sensors</h2>
+    <div id="pool"></div>
+</div>
+<div class="wifi" id="wifibox">
+    <h2 style="font-size: 14px; margin: 0; color: #cdd3df">Wi-Fi</h2>
+    <input id="ssid" placeholder="Network name" /><input
+    id="pass"
+    type="password"
+    placeholder="Password"
+/>
+    <button id="wsave" class="primary" style="margin-top: 8px">
+        Save Wi-Fi & restart
+    </button>
+</div>
+<div class="tip">
+    Tap two wheels to swap, or tap a detected sensor then a wheel to assign
+    it. Each change is confirmed; nothing is written until you save. Not
+    sure which sensor is which? Let a little air out of one tire — the
+    wheel whose psi drops is the one you're touching.
+</div>
+<script>
+    // When served by the device, API calls are same-origin. When this file is
+    // opened directly in a browser (file://), talk to the device over the network:
+    // defaults to http://tpms.local, override with ?host=<ip> in the URL.
+    var API =
+        location.protocol == "file:"
+            ? "http://" +
+            (new URLSearchParams(location.search).get("host") ||
+                "tpms.local")
+            : "";
+    var L = ["FL", "FR", "RL", "RR"],
+        work = [],
+        saved = [],
+        live = {},
+        pool = [],
+        sel = null,
+        pending = null,
+        mode = "sta";
+    function short(m) {
+        return m ? "…" + m.slice(-8) : "unassigned";
+    }
+    function dirty() {
+        return work.join() != saved.join();
+    }
+    function el(id) {
+        return document.getElementById(id);
+    }
+    function api() {
+        fetch(API + "/api/state")
+            .then((r) => r.json())
+            .then((s) => {
+                mode = s.mode;
+                el("sub").textContent =
+                    (mode == "ap" ? "Setup mode · " : "") +
+                    (s.host ? s.host + " · " : "") +
+                    (s.ip || "");
+                live = {};
+                s.pos.forEach((p) => {
+                    if (p.mac) live[p.mac.toLowerCase()] = p;
+                });
+                s.pool.forEach((p) => {
+                    live[p.mac.toLowerCase()] = p;
+                });
+                if (!dirty()) {
+                    work = s.pos.map((p) => p.mac || "");
+                    saved = work.slice();
+                }
+                pool = s.pool.map((p) => p.mac);
+                if (mode == "ap") {
+                    el("wifibox").style.display = "block";
+                }
+                render();
+            })
+            .catch(() => {
+                el("sub").textContent =
+                    "Device unreachable (" + (API || "same origin") + ")";
+            });
+    }
+    function cellHTML(i) {
+        var m = work[i],
+            d = live[(m || "").toLowerCase()] || {};
+        var c = "cell";
+        if (pending && (pending.a == i || pending.b == i)) c += " pend";
+        else if (sel && sel.t == "pos" && sel.k == i) c += " sel";
+        var psi = d.psi != null && d.valid ? d.psi : "--";
+        var meta = m
+            ? (d.rssi != null ? d.rssi + " dBm" : "") +
+            (d.age != null ? "  ·  " + d.age + "s" : "")
+            : "no sensor";
+        return (
+            '<div class="' +
+            c +
+            '" data-pos="' +
+            i +
+            '"><div style="display:flex;justify-content:space-between"><span class=lbl>' +
+            L[i] +
+            "</span><span class=mac>" +
+            short(m) +
+            '</span></div><div style="margin-top:8px"><span class=psi>' +
+            psi +
+            "</span> <span class=unit>psi</span></div><div class=meta>" +
+            meta +
+            "</div></div>"
+        );
+    }
+    function chipHTML(m) {
+        var d = live[m.toLowerCase()] || {};
+        var c = "chip";
+        if (sel && sel.t == "pool" && sel.k == m) c += " sel";
+        return (
+            '<div class="' +
+            c +
+            '" data-pool="' +
+            m +
+            '"><span class=mac>' +
+            m +
+            "</span><span class=meta>" +
+            (d.psi != null ? d.psi + " psi" : "") +
+            (d.rssi != null ? "  ·  " + d.rssi + " dBm" : "") +
+            "</span></div>"
+        );
+    }
+    function render() {
+        el("grid").innerHTML = [0, 1, 2, 3].map(cellHTML).join("");
+        el("pool").innerHTML = pool.length
+            ? pool.map(chipHTML).join("")
+            : "<div class=meta>none unassigned</div>";
+        document
+            .querySelectorAll("[data-pos]")
+            .forEach((e) => (e.onclick = () => pick("pos", +e.dataset.pos)));
+        document
+            .querySelectorAll("[data-pool]")
+            .forEach(
+                (e) => (e.onclick = () => pick("pool", e.dataset.pool)),
+            );
+        var b = el("bar");
+        if (pending) {
+            b.style.display = "flex";
+            el("bartext").textContent = pending.txt;
+        } else b.style.display = "none";
+        el("reset").style.display = dirty() ? "inline-block" : "none";
+        el("save").disabled = !dirty();
+        el("hint").textContent = pending
+            ? "Confirm to apply, or cancel."
+            : sel
+                ? "Pick a wheel."
+                : dirty()
+                    ? "Unsaved changes."
+                    : "Tap two wheels to swap.";
+    }
+    function pick(t, k) {
+        if (pending) return;
+        if (!sel) {
+            sel = { t: t, k: k };
+            return render();
+        }
+        if (sel.t == t && sel.k == k) {
+            sel = null;
+            return render();
+        }
+        if (sel.t == "pos" && t == "pos") {
+            pending = {
+                a: sel.k,
+                b: k,
+                act: "swap",
+                txt: "Swap " + L[sel.k] + " ↔ " + L[k] + "?",
+            };
+        } else {
+            var poolMac = sel.t == "pool" ? sel.k : k,
+                wheel = sel.t == "pos" ? sel.k : k;
+            pending = {
+                act: "assign",
+                mac: poolMac,
+                b: wheel,
+                txt: "Assign " + short(poolMac) + " to " + L[wheel] + "?",
+            };
+        }
+        sel = null;
+        render();
+    }
+    el("confirm").onclick = function () {
+        if (!pending) return;
+        if (pending.act == "swap") {
+            const t = work[pending.a];
+            work[pending.a] = work[pending.b];
+            work[pending.b] = t;
+        } else {
+            work[pending.b] = pending.mac;
+        }
+        pending = null;
+        render();
+    };
+    el("cancel").onclick = function () {
+        pending = null;
+        sel = null;
+        render();
+    };
+    el("reset").onclick = function () {
+        work = saved.slice();
+        pending = null;
+        sel = null;
+        render();
+    };
+    el("save").onclick = function () {
+        if (!dirty()) return;
+        var b = new URLSearchParams();
+        for (var i = 0; i < 4; i++) b.append("mac" + i, work[i] || "");
+        fetch(API + "/api/map", { method: "POST", body: b })
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((s) => {
+                work = s.mac.slice();
+                saved = work.slice();
+                sel = null;
+                pending = null;
+                render();
+                el("hint").innerHTML =
+                    "<span class=saved>✓ Saved to device.</span>";
+            })
+            .catch(() => {
+                el("hint").textContent =
+                    "Save failed — check for duplicate sensors.";
+            });
+    };
+    el("wsave").onclick = function () {
+        const b = new URLSearchParams();
+        b.append("ssid", el("ssid").value);
+        b.append("pass", el("pass").value);
+        fetch(API + "/api/wifi", { method: "POST", body: b }).then(() => {
+            el("hint").textContent = "Saved. Restarting…";
+        });
+    };
+    api();
+    setInterval(api, 2000);
+</script>
+</body>
+</html>
