@@ -395,7 +395,6 @@ void refreshUI() {
 
     for (size_t pos = 0; pos < SENSOR_COUNT; pos += 1) {
         const InMemoryRecord &record = snapshot[sensorIndexForPosition[pos]];
-        const CardState state = getCardState(record, now);
 
         if (record.dataPacket.ok) {
             if (record.dataPacket.pressureInPsi != TPMS_INVALID) {
@@ -428,6 +427,16 @@ void refreshUI() {
             }
             setLabelText(cards[pos].lastUpdated, text);
         }
+
+        const CardState state = getCardState(record, now);
+        applyCardStyle(pos, state);
+        applyBatteryStyle(
+            pos,
+            // For now, if we don't have data for battery, we simply show 100%
+            record.dataPacket.ok ? record.dataPacket.batteryPercent : 100,
+            state
+        );
+        applyAgeStyle(pos, state);
     }
 }
 
