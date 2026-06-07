@@ -497,8 +497,12 @@ void refreshUI() {
 void setup() {
     Serial.begin(115200);
 
-    pinMode(LCD_BL, OUTPUT);
-    digitalWrite(LCD_BL, HIGH); // backlight on — screen stays black without this
+    // 80 MHz roughly halves dynamic power/heat with no perceptible effect.
+    setCpuFrequencyMhz(80);
+
+    // Backlight via PWM instead of full-on: ~70% brightness draws less LED current (less heat behind the panel).
+    ledcAttach(LCD_BL, 5000, 8); // 5 kHz carrier, 8-bit duty
+    ledcWrite(LCD_BL, 180); // 180/255 ≈ 70%
 
     gfx->begin(); // SPI init + ST7789 init sequence + reset pulse
     gfx->fillScreen(RGB565_BLACK);
@@ -534,5 +538,5 @@ void loop() {
 
     ui_tick();
     lv_timer_handler();
-    delay(5);
+    delay(5); // yield to the BLE + idle tasks (single core) and pace LVGL ~5ms
 }
