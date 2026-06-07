@@ -276,7 +276,7 @@ struct CardStyleSpec {
 static const CardStyleSpec CARD_STYLE[] = {
     /* IDLE */   { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
     /* LOW */    { .bg = COL_ALERT_BG, .border = COL_ALERT_BD, .psi = COL_RED,   .unit = COL_MUTE, .pos = COL_RED },
-    /* HIGH */   { .bg = COL_WARN_BG,  .border = COL_WARN_BD,  .psi = COL_AMBER, .unit = COL_MUTE, .pos = COL_POS },
+    /* HIGH */   { .bg = COL_WARN_BG,  .border = COL_WARN_BD,  .psi = COL_AMBER, .unit = COL_MUTE, .pos = COL_AMBER },
     /* STALE */  { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
     /* NORMAL */ { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
 };
