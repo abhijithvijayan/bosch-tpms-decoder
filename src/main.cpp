@@ -1,3 +1,13 @@
+/* =============================================================================
+   TPMS dashboard — Waveshare ESP32-C6-LCD-1.47 (ST7789, 172x320, landscape)
+   Passive BLE scan of Bosch TPMS sensors -> AES-128 decode -> LVGL dashboard.
+
+   Data flow:
+     NimBLE task : advert -> decode -> recordPacket() into inMemoryCache (locked)
+     loop() task : every 400ms snapshot the cache -> classify -> render the cards
+   The two tasks meet only inside the mutexLock critical section.
+   ============================================================================ */
+
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include <lvgl.h>
@@ -5,17 +15,123 @@
 #include <mbedtls/aes.h>
 #include <ui/ui.h>
 
+/* ===========================================================================
+   Configuration
+   =========================================================================== */
+
 // Onboard 1.47" ST7789 wiring
 // https://docs.waveshare.com/ESP32-C6-LCD-1.47?variant=ESP32-C6-LCD-1.47
 #define LCD_SCLK 7
 #define LCD_MOSI 6
-#define LCD_DC   15
-#define LCD_CS   14
-#define LCD_RST  21
-#define LCD_BL   22
+#define LCD_DC 15
+#define LCD_CS 14
+#define LCD_RST 21
+#define LCD_BL 22
 
 #define LANDSCAPE_SCREEN_WIDTH 320
 #define LANDSCAPE_SCREEN_HEIGHT 172
+
+// Backlight brightness (8-bit PWM duty), written as % and resolved to duty
+#define BACKLIGHT_PERCENT 70 // Reduced 70% brightness
+#define BACKLIGHT_DIM_PERCENT 15 // dimmed when overheating
+#define BACKLIGHT_NORMAL_VALUE ((255 * BACKLIGHT_PERCENT) / 100)
+#define BACKLIGHT_DIM_VALUE ((255 * BACKLIGHT_DIM_PERCENT) / 100)
+
+// The panel blanks above its clearing temperature; dim the backlight before that, restore once cool.
+#define PANEL_BLACKOUT_TEMPERATURE 70.0f
+#define BACKLIGHT_DIM_ABOVE_TEMPERATURE (PANEL_BLACKOUT_TEMPERATURE - 10.0f) // dim 10° before blackout
+#define BACKLIGHT_RESTORE_BELOW_TEMPERATURE (PANEL_BLACKOUT_TEMPERATURE - 20.0f) // restore 20° below
+
+// Alert thresholds. This car: placard 32 PSI cold; tyre 205/65 R16 95H,
+// sidewall max 51 PSI (verified). LOW = 20% below placard (ECE R141);
+// HIGH = 40% above (clears hot-tyre ~37, below sidewall max).
+#define RECOMMENDED_PSI 32 // recommended cold pressure — sticker on driver's door
+#define SIDEWALL_MAX_PSI 51 // tyre's printed limit — "MAX INFLATION PRESSURE" on sidewall
+#define PSI_LOW (RECOMMENDED_PSI * 80 / 100) // 32 -> 25
+#define PSI_HIGH (RECOMMENDED_PSI * 140 / 100) // 32 -> 44
+static_assert(PSI_HIGH < SIDEWALL_MAX_PSI, "PSI_HIGH must stay below the tyre's printed max");
+static_assert(PSI_LOW  < RECOMMENDED_PSI, "PSI_LOW must be below the recommended pressure");
+
+#define STALE_MS  (10UL * 60UL * 1000UL) // 10 min without a frame means data is stale
+
+// Color System
+#define COLOR_BACKGROUND 0x0B0E14 // screen background
+#define COLOR_CARD 0x161D2B // card fill, normal
+#define COLOR_CARD_BD 0x232C40 // card border, normal
+#define COLOR_ALERT_BACKGROUND 0x2A1113 // card fill, low/puncture
+#define COLOR_ALERT_BORDER 0x7F1D1D // card border, low/puncture
+#define COLOR_WARN_BACKGROUND 0x2A2410 // card fill, overinflated
+#define COLOR_WARN_BORDER 0x7A5A12 // card border, overinflated
+#define COLOR_TEXT 0xFFFFFF // psi number, temp
+#define COLOR_MUTE 0x8A93A6 // "psi" unit
+#define COLOR_DIM 0x5B6373 // age label, idle battery
+#define COLOR_POSITION 0x5DA3FF // FL/FR/RL/RR (blue)
+#define COLOR_RED 0xFF5A5A // low psi, battery ≤20%
+#define COLOR_CRITICAL_RED 0xD32030 // battery ≤10%
+#define COLOR_AMBER 0xFACC15 // high psi, battery ≤40%
+#define COLOR_GREEN 0x4ADE80 // battery OK
+#define COLOR_PILL_OK 0x166534 // header pill, all-OK green
+#define COLOR_PILL_BAD 0xB91C1C // header pill, alert red
+
+/* ===========================================================================
+   Constants
+   =========================================================================== */
+
+static const NimBLEUUID TPMS_SERVICE_UUID(static_cast<uint16_t>(0xFFE0)); // service UUID every Bosch sensor advertises
+constexpr int TPMS_INVALID = 0xFF4C; // per-field "no reading" sentinel
+// Static AES-128 key, hard-coded in every Bosch TPMS sensor.
+static constexpr uint8_t kAesKey[16] = { '#','@','T','r','l','2','0','1','8','-','l','e','s','p','l','$' };
+
+constexpr size_t SENSOR_COUNT = 4;
+
+/* ===========================================================================
+   Types
+   =========================================================================== */
+
+struct DataPacket {
+    bool ok;
+    int temperatureInCelsius;
+    int pressureInPsi;
+    int batteryPercent;
+};
+
+struct InMemoryRecord {
+    DataPacket dataPacket;
+    int rssi; // Radio metadata
+    uint32_t lastUpdated;
+};
+
+enum CardState {
+    CARD_IDLE,
+    CARD_LOW,
+    CARD_HIGH,
+    CARD_STALE,
+    CARD_NORMAL
+};
+
+struct CardStyleSpec {
+    uint32_t bg;
+    uint32_t border;
+    uint32_t psi;
+    uint32_t unit;
+    uint32_t pos;
+};
+
+struct CardWidgets {
+    lv_obj_t *card;
+    lv_obj_t *posLabel;
+    lv_obj_t *temperature;
+    lv_obj_t *pressure;
+    lv_obj_t *unit;
+    lv_obj_t *lastUpdated;
+    lv_obj_t *batteryPercentage;
+    lv_obj_t *batteryBar; // the lv_bar inside the icon — value + fill + outline
+    lv_obj_t *batteryNib; // the terminal bump — recolored with the bar
+};
+
+/* ===========================================================================
+   Globals
+   =========================================================================== */
 
 Arduino_DataBus *bus = new Arduino_ESP32SPI(LCD_DC, LCD_CS, LCD_SCLK, LCD_MOSI, GFX_NOT_DEFINED);
 Arduino_GFX *gfx = new Arduino_ST7789(
@@ -39,38 +155,9 @@ Arduino_GFX *gfx = new Arduino_ST7789(
 // Partial-buffer mode: small RAM cost, screen updates in strips.
 static lv_color_t tempCanvasBuffer[LANDSCAPE_SCREEN_WIDTH * 40];
 
-// LVGL needs a clock source to run animations/timers, which on Arduino is just millis()
-static uint32_t tickCallback() {
-    return millis();
-}
-
-// LVGL completed rendering -> flush it to the ST7789
-static void flushIntoDisplay(lv_display_t *display, const lv_area_t *area, uint8_t *px_map) {
-    const uint32_t width = lv_area_get_width(area);
-    const uint32_t height = lv_area_get_height(area);
-    gfx->draw16bitRGBBitmap(area->x1, area->y1, reinterpret_cast<uint16_t *>(px_map), width, height);
-    lv_display_flush_ready(display); // tell LVGL it may reuse the buffer
-}
-
-struct DataPacket {
-    bool ok;
-    int temperatureInCelsius;
-    int pressureInPsi;
-    int batteryPercent;
-};
-
-static const NimBLEUUID TPMS_SERVICE_UUID(static_cast<uint16_t>(0xFFE0)); // service UUID every Bosch sensor advertises
-constexpr int TPMS_INVALID = 0xFF4C; // per-field "no reading" sentinel
-// Static AES-128 key, hard-coded in every Bosch TPMS sensor.
-static constexpr uint8_t kAesKey[16] = { '#','@','T','r','l','2','0','1','8','-','l','e','s','p','l','$' };
-
-struct InMemoryRecord {
-    DataPacket dataPacket;
-    int rssi; // Radio metadata
-    uint32_t lastUpdated;
-};
-
-constexpr size_t SENSOR_COUNT = 4;
+// last reading per sensor; BLE task writes, loop() snapshots. Guarded by mutexLock.
+static InMemoryRecord inMemoryCache[SENSOR_COUNT];
+static portMUX_TYPE mutexLock = portMUX_INITIALIZER_UNLOCKED;
 
 static const char *WHITELISTED_SENSOR_MAC_ADDRESSES[SENSOR_COUNT] = {
     "f2:ca:ed:d5:6d:ca", // default FL
@@ -79,26 +166,21 @@ static const char *WHITELISTED_SENSOR_MAC_ADDRESSES[SENSOR_COUNT] = {
     "c4:7a:7f:1b:57:30", // default RR
 };
 
-static int getSensorReadingMapIndex(const char *mac) {
-    for (int index = 0; index < SENSOR_COUNT; index += 1) {
-        if (strcasecmp(WHITELISTED_SENSOR_MAC_ADDRESSES[index], mac) == 0) {
-            return index;
-        }
-    }
+static int sensorIndexForPosition[SENSOR_COUNT] = {3, 2, 1, 0}; // Current state of sensors in wheels
 
-    return -1;
-}
+static const CardStyleSpec CARD_STYLE[] = {
+    /* IDLE */   { .bg = COLOR_CARD,     .border = COLOR_CARD_BD,  .psi = COLOR_TEXT,   .unit = COLOR_MUTE, .pos = COLOR_POSITION },
+    /* LOW */    { .bg = COLOR_ALERT_BACKGROUND, .border = COLOR_ALERT_BORDER, .psi = COLOR_RED,   .unit = COLOR_MUTE, .pos = COLOR_RED },
+    /* HIGH */   { .bg = COLOR_WARN_BACKGROUND,  .border = COLOR_WARN_BORDER,  .psi = COLOR_AMBER, .unit = COLOR_MUTE, .pos = COLOR_AMBER },
+    /* STALE */  { .bg = COLOR_CARD,     .border = COLOR_CARD_BD,  .psi = COLOR_TEXT,   .unit = COLOR_MUTE, .pos = COLOR_POSITION },
+    /* NORMAL */ { .bg = COLOR_CARD,     .border = COLOR_CARD_BD,  .psi = COLOR_TEXT,   .unit = COLOR_MUTE, .pos = COLOR_POSITION },
+};
 
-static InMemoryRecord inMemoryCache[SENSOR_COUNT];
-static portMUX_TYPE mutexLock = portMUX_INITIALIZER_UNLOCKED;
+static CardWidgets cards[SENSOR_COUNT];
 
-static void recordPacket(const int sensorIndex, const DataPacket &dataPacket, const int rssi) {
-    portENTER_CRITICAL(&mutexLock);
-    inMemoryCache[sensorIndex].dataPacket = dataPacket;
-    inMemoryCache[sensorIndex].rssi = rssi;
-    inMemoryCache[sensorIndex].lastUpdated = millis();
-    portEXIT_CRITICAL(&mutexLock);
-}
+/* ===========================================================================
+   Bosch TPMS decoder
+   =========================================================================== */
 
 // little-endian u16 from a 2-byte slice
 static uint16_t leU16(const uint8_t *p) {
@@ -154,22 +236,48 @@ static DataPacket decodeFrame(const uint8_t *rawAdv, size_t len) {
 
     dataPacket.ok = true;
 
-    uint16_t t = leU16(&decryptedPayload[1]);        // temp, valid [-40, 125] °C
+    uint16_t t = leU16(&decryptedPayload[1]); // temp, valid [-40, 125] °C
     if (t != 0xFFFF) {
         const int c = decodeTemp(t);
         dataPacket.temperatureInCelsius = (c < -40 || c > 125) ? TPMS_INVALID : c;
     }
 
-    uint16_t pr = leU16(&decryptedPayload[3]);       // pressure, valid [0, 217] PSI
+    uint16_t pr = leU16(&decryptedPayload[3]); // pressure, valid [0, 217] PSI
     if (pr != 0xFFFF) {
         const int p = decodePressure(pr);
         dataPacket.pressureInPsi = (p < 0 || p > 217) ? TPMS_INVALID : p;
     }
 
-    dataPacket.batteryPercent = min(decryptedPayload[5] & 0xFF, 100);   // battery, clamp ≤100
+    dataPacket.batteryPercent = min(decryptedPayload[5] & 0xFF, 100); // battery, clamp ≤100
 
     return dataPacket;
 }
+
+/* ===========================================================================
+   Sensor cache
+   =========================================================================== */
+
+static int getSensorReadingMapIndex(const char *mac) {
+    for (int index = 0; index < SENSOR_COUNT; index += 1) {
+        if (strcasecmp(WHITELISTED_SENSOR_MAC_ADDRESSES[index], mac) == 0) {
+            return index;
+        }
+    }
+
+    return -1;
+}
+
+static void recordPacket(const int sensorIndex, const DataPacket &dataPacket, const int rssi) {
+    portENTER_CRITICAL(&mutexLock);
+    inMemoryCache[sensorIndex].dataPacket = dataPacket;
+    inMemoryCache[sensorIndex].rssi = rssi;
+    inMemoryCache[sensorIndex].lastUpdated = millis();
+    portEXIT_CRITICAL(&mutexLock);
+}
+
+/* ===========================================================================
+   BLE scan
+   =========================================================================== */
 
 class TpmsScanCallback : public NimBLEScanCallbacks {
     public : void onResult(const NimBLEAdvertisedDevice *device) override {
@@ -197,47 +305,26 @@ class TpmsScanCallback : public NimBLEScanCallbacks {
     }
 };
 
-#define COL_BG        0x0B0E14   // screen background
-#define COL_CARD      0x161D2B   // card fill, normal
-#define COL_CARD_BD   0x232C40   // card border, normal
-#define COL_ALERT_BG  0x2A1113   // card fill, low/puncture
-#define COL_ALERT_BD  0x7F1D1D   // card border, low/puncture
-#define COL_WARN_BG   0x2A2410   // card fill, overinflated
-#define COL_WARN_BD   0x7A5A12   // card border, overinflated
-#define COL_TXT       0xFFFFFF   // psi number, temp
-#define COL_MUTE      0x8A93A6   // "psi" unit
-#define COL_DIM       0x5B6373   // age label, idle battery
-#define COL_POS       0x5DA3FF   // FL/FR/RL/RR (blue)
-#define COL_RED       0xFF5A5A   // low psi, battery ≤20%
-#define COL_CRITRED   0xD32030   // battery ≤10%
-#define COL_AMBER     0xFACC15   // high psi, battery ≤40%
-#define COL_GREEN     0x4ADE80   // battery OK
-#define COL_PILL_OK   0x166534   // header pill, all-OK green
-#define COL_PILL_BAD  0xB91C1C   // header pill, alert red
+/* ===========================================================================
+   Display / LVGL glue
+   =========================================================================== */
 
-#define PLACARD_PSI       32   // recommended cold pressure — sticker on driver's door
-#define SIDEWALL_MAX_PSI  51   // tyre's printed limit — "MAX INFLATION PRESSURE" on sidewall
+// LVGL needs a clock source to run animations/timers, which on Arduino is just millis()
+static uint32_t tickCallback() {
+    return millis();
+}
 
-// LOW = 20% below recommended - EU rule ECE R141
-#define PSI_LOW   (PLACARD_PSI * 80 / 100)    // 32 -> 25
+// LVGL completed rendering -> flush it to the ST7789
+static void flushIntoDisplay(lv_display_t *display, const lv_area_t *area, uint8_t *px_map) {
+    const uint32_t width = lv_area_get_width(area);
+    const uint32_t height = lv_area_get_height(area);
+    gfx->draw16bitRGBBitmap(area->x1, area->y1, reinterpret_cast<uint16_t *>(px_map), width, height);
+    lv_display_flush_ready(display); // tell LVGL it may reuse the buffer
+}
 
-// HIGH = 40% above recommended. Hot tyres legitimately run ~15% over (32 -> ~37),
-// so +40% is far enough out to never false-alarm, yet still below the sidewall limit.
-#define PSI_HIGH  (PLACARD_PSI * 140 / 100)   // 32 -> 44
-
-// compile-time sanity: refuse to build if the math ever lands somewhere unsafe
-static_assert(PSI_HIGH < SIDEWALL_MAX_PSI, "PSI_HIGH must stay below the tyre's printed max");
-static_assert(PSI_LOW  < PLACARD_PSI,      "PSI_LOW must be below the recommended pressure");
-
-#define STALE_MS  (30UL * 60UL * 1000UL)      // 30 min without a frame means data is stale
-
-enum CardState {
-    CARD_IDLE,
-    CARD_LOW,
-    CARD_HIGH,
-    CARD_STALE,
-    CARD_NORMAL
-};
+/* ===========================================================================
+   UI
+   =========================================================================== */
 
 static CardState getCardState(const InMemoryRecord &record, const uint32_t now) {
     if (!record.dataPacket.ok) {
@@ -262,40 +349,54 @@ static CardState getCardState(const InMemoryRecord &record, const uint32_t now) 
 
 // stale look = base color blended 0.55 over the screen bg
 static lv_color_t staleFade(const uint32_t color) {
-    return lv_color_mix(lv_color_hex(color), lv_color_hex(COL_BG), 0.55 * 255);
+    return lv_color_mix(lv_color_hex(color), lv_color_hex(COLOR_BACKGROUND), 0.55 * 255);
 }
 
-struct CardStyleSpec {
-    uint32_t bg;
-    uint32_t border;
-    uint32_t psi;
-    uint32_t unit;
-    uint32_t pos;
-};
+static void applyCardStyle(const size_t pos, const CardState state) {
+    const CardStyleSpec &spec = CARD_STYLE[state];
+    const bool stale = (state == CARD_STALE);
 
-static const CardStyleSpec CARD_STYLE[] = {
-    /* IDLE */   { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
-    /* LOW */    { .bg = COL_ALERT_BG, .border = COL_ALERT_BD, .psi = COL_RED,   .unit = COL_MUTE, .pos = COL_RED },
-    /* HIGH */   { .bg = COL_WARN_BG,  .border = COL_WARN_BD,  .psi = COL_AMBER, .unit = COL_MUTE, .pos = COL_AMBER },
-    /* STALE */  { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
-    /* NORMAL */ { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
-};
+    // local helper: raw palette color -> lv color, faded when stale
+    auto getColor = [stale](const uint32_t color) {
+        return stale ? staleFade(color) : lv_color_hex(color);
+    };
 
-static int sensorIndexForPosition[SENSOR_COUNT] = {3, 2, 1, 0}; // Current state of sensors in wheels
+    lv_obj_set_style_bg_color(cards[pos].card, getColor(spec.bg), LV_PART_MAIN);
+    lv_obj_set_style_border_color(cards[pos].card, getColor(spec.border), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].pressure, getColor(spec.psi), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].unit, getColor(spec.unit), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].posLabel, getColor(spec.pos), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].temperature, getColor(COLOR_TEXT), LV_PART_MAIN);
+}
 
-struct CardWidgets {
-    lv_obj_t *card;
-    lv_obj_t *posLabel;
-    lv_obj_t *temperature;
-    lv_obj_t *pressure;
-    lv_obj_t *unit;
-    lv_obj_t *lastUpdated;
-    lv_obj_t *batteryPercentage;
-    lv_obj_t *batteryBar;   // the lv_bar inside the icon — value + fill + outline
-    lv_obj_t *batteryNib;   // the terminal bump — recolored with the bar
-};
+static void applyBatteryStyle(const size_t pos, const int percent, const CardState state) {
+    uint32_t color = percent <= 10 ? COLOR_CRITICAL_RED
+       : percent <= 20 ? COLOR_RED
+       : percent <= 40 ? COLOR_AMBER
+       : COLOR_GREEN;
+    if (state == CARD_IDLE) {
+        color = COLOR_DIM; // no data yet: neutral gray
+    }
 
-static CardWidgets cards[SENSOR_COUNT];
+    const lv_color_t c = (state == CARD_STALE) ? staleFade(color) : lv_color_hex(color);
+    lv_obj_set_style_text_color(cards[pos].batteryPercentage, c, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(cards[pos].batteryBar, c, LV_PART_INDICATOR);
+    lv_obj_set_style_border_color(cards[pos].batteryBar, c, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(cards[pos].batteryNib, c, LV_PART_MAIN);
+}
+
+// age label: dim normally; faded amber when stale
+static void applyAgeStyle(const size_t pos, const CardState state) {
+    const lv_color_t c = (state == CARD_STALE) ? staleFade(COLOR_AMBER) : lv_color_hex(COLOR_DIM);
+    lv_obj_set_style_text_color(cards[pos].lastUpdated, c, LV_PART_MAIN);
+}
+
+// set a label's text only if it actually changed
+static void setLabelText(lv_obj_t *label, const char *text) {
+    if (strcmp(lv_label_get_text(label), text) != 0) {
+        lv_label_set_text(label, text);
+    }
+}
 
 static void bindCards() {
   cards[0] = {
@@ -342,52 +443,6 @@ static void bindCards() {
       .batteryBar        = objects.sensor_4_card_bottom_row_battery_icon_bar,
       .batteryNib        = objects.sensor_4_card_bottom_row_battery_icon_nub,
   };
-}
-
-static void applyCardStyle(const size_t pos, const CardState state) {
-    const CardStyleSpec &spec = CARD_STYLE[state];
-    const bool stale = (state == CARD_STALE);
-
-    // local helper: raw palette color -> lv color, faded when stale
-    auto getColor = [stale](const uint32_t color) {
-        return stale ? staleFade(color) : lv_color_hex(color);
-    };
-
-    lv_obj_set_style_bg_color(cards[pos].card, getColor(spec.bg), LV_PART_MAIN);
-    lv_obj_set_style_border_color(cards[pos].card, getColor(spec.border), LV_PART_MAIN);
-    lv_obj_set_style_text_color(cards[pos].pressure, getColor(spec.psi), LV_PART_MAIN);
-    lv_obj_set_style_text_color(cards[pos].unit, getColor(spec.unit), LV_PART_MAIN);
-    lv_obj_set_style_text_color(cards[pos].posLabel, getColor(spec.pos), LV_PART_MAIN);
-    lv_obj_set_style_text_color(cards[pos].temperature, getColor(COL_TXT), LV_PART_MAIN);
-}
-
-static void applyBatteryStyle(const size_t pos, const int percent, const CardState state) {
-    uint32_t color = percent <= 10 ? COL_CRITRED
-       : percent <= 20 ? COL_RED
-       : percent <= 40 ? COL_AMBER
-       : COL_GREEN;
-    if (state == CARD_IDLE) {
-        color = COL_DIM;   // no data yet: neutral gray
-    }
-
-    const lv_color_t c = (state == CARD_STALE) ? staleFade(color) : lv_color_hex(color);
-    lv_obj_set_style_text_color(cards[pos].batteryPercentage, c, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(cards[pos].batteryBar, c, LV_PART_INDICATOR);  // the fill
-    lv_obj_set_style_border_color(cards[pos].batteryBar, c, LV_PART_MAIN);   // the outline
-    lv_obj_set_style_bg_color(cards[pos].batteryNib, c, LV_PART_MAIN);       // nub follows
-}
-
-// age label: dim normally; faded amber when stale
-static void applyAgeStyle(const size_t pos, const CardState state) {
-    const lv_color_t c = (state == CARD_STALE) ? staleFade(COL_AMBER) : lv_color_hex(COL_DIM);
-    lv_obj_set_style_text_color(cards[pos].lastUpdated, c, LV_PART_MAIN);
-}
-
-// set a label's text only if it actually changed
-static void setLabelText(lv_obj_t *label, const char *text) {
-    if (strcmp(lv_label_get_text(label), text) != 0) {
-        lv_label_set_text(label, text);
-    }
 }
 
 void refreshUI() {
@@ -472,19 +527,19 @@ void refreshUI() {
         uint32_t pillColor;
         const char *pillText;
         if (lowCount > 0 && highCount > 0) {
-            pillColor = COL_PILL_BAD;
+            pillColor = COLOR_PILL_BAD;
             pillText = "Multiple Issues Detected";
         }
         else if (lowCount) {
-            pillColor = COL_PILL_BAD;
+            pillColor = COLOR_PILL_BAD;
             pillText = "Low Pressure Detected";
         }
         else if (highCount) {
-            pillColor = COL_WARN_BD;
+            pillColor = COLOR_WARN_BORDER;
             pillText = "High Pressure Detected";
         }
         else {
-            pillColor = COL_PILL_OK;
+            pillColor = COLOR_PILL_OK;
             pillText = "All tires OK";
         }
 
@@ -494,16 +549,9 @@ void refreshUI() {
     }
 }
 
-// Backlight brightness (8-bit PWM duty), written as % and resolved to duty
-#define BACKLIGHT_PERCENT 70 // Reduced 70% brightness
-#define BACKLIGHT_DIM_PERCENT 15 // dimmed when overheating
-#define BACKLIGHT_NORMAL_VALUE ((255 * BACKLIGHT_PERCENT) / 100)
-#define BACKLIGHT_DIM_VALUE ((255 * BACKLIGHT_DIM_PERCENT) / 100)
-
-// The panel blanks above its clearing temperature; dim the backlight before that, restore once cool.
-#define PANEL_BLACKOUT_C            60.0f
-#define BACKLIGHT_DIM_ABOVE_C      (PANEL_BLACKOUT_C - 10.0f)  // dim 10° before blackout
-#define BACKLIGHT_RESTORE_BELOW_C  (PANEL_BLACKOUT_C - 20.0f)  // restore 20° below
+/* ===========================================================================
+   Thermal management
+   =========================================================================== */
 
 static void handleDeviceThermal(const uint32_t now) {
     static uint32_t last = 0;
@@ -517,14 +565,18 @@ static void handleDeviceThermal(const uint32_t now) {
     const float temperature = temperatureRead();
     Serial.printf("Board Temperature: %.1f C%s\n", temperature, throttled ? " (throttled)" : "");
 
-    if (!throttled && temperature >= BACKLIGHT_DIM_ABOVE_C) {
+    if (!throttled && temperature >= BACKLIGHT_DIM_ABOVE_TEMPERATURE) {
         ledcWrite(LCD_BL, BACKLIGHT_DIM_VALUE);
         throttled = true;
-    } else if (throttled && temperature <= BACKLIGHT_RESTORE_BELOW_C) {
+    } else if (throttled && temperature <= BACKLIGHT_RESTORE_BELOW_TEMPERATURE) {
         ledcWrite(LCD_BL, BACKLIGHT_NORMAL_VALUE);
         throttled = false;
     }
 }
+
+/* ===========================================================================
+   Arduino entry points
+   =========================================================================== */
 
 void setup() {
     Serial.begin(115200);
