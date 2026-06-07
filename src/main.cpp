@@ -64,6 +64,42 @@ constexpr int TPMS_INVALID = 0xFF4C; // per-field "no reading" sentinel
 // Static AES-128 key, hard-coded in every Bosch TPMS sensor.
 static constexpr uint8_t kAesKey[16] = { '#','@','T','r','l','2','0','1','8','-','l','e','s','p','l','$' };
 
+struct InMemoryRecord {
+    DataPacket dataPacket;
+    int rssi; // Radio metadata
+    uint32_t lastUpdated;
+};
+
+constexpr size_t SENSOR_COUNT = 4;
+
+static const char *WHITELISTED_SENSOR_MAC_ADDRESSES[SENSOR_COUNT] = {
+    "c4:7a:7f:1b:57:30",
+    "d6:91:24:de:9b:e6",
+    "fc:6a:b1:1d:5f:2d",
+    "f2:ca:ed:d5:6d:ca",
+};
+
+static int getSensorReadingMapIndex(const char *mac) {
+    for (int index = 0; index < SENSOR_COUNT; index += 1) {
+        if (strcasecmp(WHITELISTED_SENSOR_MAC_ADDRESSES[index], mac) == 0) {
+            return index;
+        }
+    }
+
+    return -1;
+}
+
+static InMemoryRecord records[SENSOR_COUNT];
+static portMUX_TYPE mutexLock = portMUX_INITIALIZER_UNLOCKED;
+
+static void recordPacket(const int sensorIndex, const DataPacket &dataPacket, const int rssi) {
+    portENTER_CRITICAL(&mutexLock);
+    records[sensorIndex].dataPacket = dataPacket;
+    records[sensorIndex].rssi = rssi;
+    records[sensorIndex].lastUpdated = millis();
+    portEXIT_CRITICAL(&mutexLock);
+}
+
 // little-endian u16 from a 2-byte slice
 static uint16_t leU16(const uint8_t *p) {
     return p[0] | (p[1] << 8);
@@ -136,20 +172,28 @@ static DataPacket decodeFrame(const uint8_t *rawAdv, size_t len) {
 }
 
 class TpmsScanCallback : public NimBLEScanCallbacks {
-public : void onResult(const NimBLEAdvertisedDevice *dev) override {
-        if (!dev->isAdvertisingService(TPMS_SERVICE_UUID)) {
+    public : void onResult(const NimBLEAdvertisedDevice *device) override {
+        if (!device->isAdvertisingService(TPMS_SERVICE_UUID)) {
             return;
         }
 
-        const std::vector<uint8_t> &payload = dev->getPayload();
+        const std::string mac = device->getAddress().toString();
+        const int inMemoryRecordIndex = getSensorReadingMapIndex(mac.c_str());
+        if (inMemoryRecordIndex < 0) {
+            return; // This TPMS Sensor is not whitelisted
+        }
+
+        const std::vector<uint8_t> &payload = device->getPayload();
         DataPacket dataPacket = decodeFrame(payload.data(), payload.size());
         if (!dataPacket.ok) {
             return;
         }
 
+        recordPacket(inMemoryRecordIndex, dataPacket, device->getRSSI());
+
         Serial.printf("[%s] temp %d C  press %d PSI  batt %d%%  RSSI %d\n",
-                      dev->getAddress().toString().c_str(),
-                      dataPacket.temperatureInCelsius, dataPacket.pressureInPsi, dataPacket.batteryPercent, dev->getRSSI());
+                      device->getAddress().toString().c_str(),
+                      dataPacket.temperatureInCelsius, dataPacket.pressureInPsi, dataPacket.batteryPercent, device->getRSSI());
     }
 };
 
