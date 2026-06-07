@@ -73,10 +73,10 @@ struct InMemoryRecord {
 constexpr size_t SENSOR_COUNT = 4;
 
 static const char *WHITELISTED_SENSOR_MAC_ADDRESSES[SENSOR_COUNT] = {
-    "c4:7a:7f:1b:57:30",
-    "d6:91:24:de:9b:e6",
-    "fc:6a:b1:1d:5f:2d",
-    "f2:ca:ed:d5:6d:ca",
+    "f2:ca:ed:d5:6d:ca", // default FL
+    "fc:6a:b1:1d:5f:2d", // default FR
+    "d6:91:24:de:9b:e6", // default RL
+    "c4:7a:7f:1b:57:30", // default RR
 };
 
 static int getSensorReadingMapIndex(const char *mac) {
@@ -89,14 +89,14 @@ static int getSensorReadingMapIndex(const char *mac) {
     return -1;
 }
 
-static InMemoryRecord records[SENSOR_COUNT];
+static InMemoryRecord inMemoryCache[SENSOR_COUNT];
 static portMUX_TYPE mutexLock = portMUX_INITIALIZER_UNLOCKED;
 
 static void recordPacket(const int sensorIndex, const DataPacket &dataPacket, const int rssi) {
     portENTER_CRITICAL(&mutexLock);
-    records[sensorIndex].dataPacket = dataPacket;
-    records[sensorIndex].rssi = rssi;
-    records[sensorIndex].lastUpdated = millis();
+    inMemoryCache[sensorIndex].dataPacket = dataPacket;
+    inMemoryCache[sensorIndex].rssi = rssi;
+    inMemoryCache[sensorIndex].lastUpdated = millis();
     portEXIT_CRITICAL(&mutexLock);
 }
 
@@ -231,6 +231,206 @@ static_assert(PSI_LOW  < PLACARD_PSI,      "PSI_LOW must be below the recommende
 
 #define STALE_MS  (30UL * 60UL * 1000UL)      // 30 min without a frame means data is stale
 
+enum CardState {
+    CARD_IDLE,
+    CARD_LOW,
+    CARD_HIGH,
+    CARD_STALE,
+    CARD_NORMAL
+};
+
+static CardState getCardState(const InMemoryRecord &record, const uint32_t now) {
+    if (!record.dataPacket.ok) {
+        return CARD_IDLE;
+    }
+
+    const int psi = record.dataPacket.pressureInPsi;
+    if (record.dataPacket.pressureInPsi != TPMS_INVALID && psi <= PSI_LOW) {
+        return CARD_LOW;
+    }
+
+    if (record.dataPacket.pressureInPsi != TPMS_INVALID && psi >= PSI_HIGH) {
+        return CARD_HIGH;
+    }
+
+    if (now - record.lastUpdated > STALE_MS) {
+        return CARD_STALE;
+    }
+
+    return CARD_NORMAL;
+}
+
+// stale look = base color blended 0.55 over the screen bg
+static lv_color_t staleFade(const uint32_t color) {
+    return lv_color_mix(lv_color_hex(color), lv_color_hex(COL_BG), 0.55 * 255);
+}
+
+struct CardStyleSpec {
+    uint32_t bg;
+    uint32_t border;
+    uint32_t psi;
+    uint32_t unit;
+    uint32_t pos;
+};
+
+static const CardStyleSpec CARD_STYLE[] = {
+    /* IDLE */   { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
+    /* LOW */    { .bg = COL_ALERT_BG, .border = COL_ALERT_BD, .psi = COL_RED,   .unit = COL_MUTE, .pos = COL_RED },
+    /* HIGH */   { .bg = COL_WARN_BG,  .border = COL_WARN_BD,  .psi = COL_AMBER, .unit = COL_MUTE, .pos = COL_POS },
+    /* STALE */  { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
+    /* NORMAL */ { .bg = COL_CARD,     .border = COL_CARD_BD,  .psi = COL_TXT,   .unit = COL_MUTE, .pos = COL_POS },
+};
+
+static int sensorIndexForPosition[SENSOR_COUNT] = {3, 2, 1, 0}; // Current state of sensors in wheels
+
+struct CardWidgets {
+    lv_obj_t *card;
+    lv_obj_t *posLabel;
+    lv_obj_t *temperature;
+    lv_obj_t *pressure;
+    lv_obj_t *unit;
+    lv_obj_t *lastUpdated;
+    lv_obj_t *batteryPercentage;
+    lv_obj_t *batteryIcon;
+};
+
+static CardWidgets cards[SENSOR_COUNT];
+
+static void bindCards() {
+  cards[0] = {
+      .card              = objects.sensor_1_card,
+      .posLabel          = objects.sensor_1_card_top_row_label,
+      .temperature       = objects.sensor_1_card_top_row_temperature,
+      .pressure          = objects.sensor_1_card_middle_row_pressure,
+      .unit              = objects.sensor_1_card_middle_row_pressure_unit,
+      .lastUpdated       = objects.sensor_1_card_bottom_row_last_updated,
+      .batteryPercentage = objects.sensor_1_card_bottom_row_battery_percentage,
+      .batteryIcon       = objects.sensor_1_card_bottom_row_battery_icon,
+  };
+  cards[1] = {
+      .card              = objects.sensor_2_card,
+      .posLabel          = objects.sensor_2_card_top_row_label,
+      .temperature       = objects.sensor_2_card_top_row_temperature,
+      .pressure          = objects.sensor_2_card_middle_row_pressure,
+      .unit              = objects.sensor_2_card_middle_row_pressure_unit,
+      .lastUpdated       = objects.sensor_2_card_bottom_row_last_updated,
+      .batteryPercentage = objects.sensor_2_card_bottom_row_battery_percentage,
+      .batteryIcon       = objects.sensor_2_card_bottom_row_battery_icon,
+  };
+  cards[2] = {
+      .card              = objects.sensor_3_card,
+      .posLabel          = objects.sensor_3_card_top_row_label,
+      .temperature       = objects.sensor_3_card_top_row_temperature,
+      .pressure          = objects.sensor_3_card_middle_row_pressure,
+      .unit              = objects.sensor_3_card_middle_row_pressure_unit,
+      .lastUpdated       = objects.sensor_3_card_bottom_row_last_updated,
+      .batteryPercentage = objects.sensor_3_card_bottom_row_battery_percentage,
+      .batteryIcon       = objects.sensor_3_card_bottom_row_battery_icon,
+  };
+  cards[3] = {
+      .card              = objects.sensor_4_card,
+      .posLabel          = objects.sensor_4_card_top_row_label,
+      .temperature       = objects.sensor_4_card_top_row_temperature,
+      .pressure          = objects.sensor_4_card_middle_row_pressure,
+      .unit              = objects.sensor_4_card_middle_row_pressure_unit,
+      .lastUpdated       = objects.sensor_4_card_bottom_row_last_updated,
+      .batteryPercentage = objects.sensor_4_card_bottom_row_battery_percentage,
+      .batteryIcon       = objects.sensor_4_card_bottom_row_battery_icon,
+  };
+}
+
+static void applyCardStyle(const size_t pos, const CardState state) {
+    const CardStyleSpec &spec = CARD_STYLE[state];
+    const bool stale = (state == CARD_STALE);
+
+    // local helper: raw palette color -> lv color, faded when stale
+    auto getColor = [stale](const uint32_t color) {
+        return stale ? staleFade(color) : lv_color_hex(color);
+    };
+
+    lv_obj_set_style_bg_color(cards[pos].card, getColor(spec.bg), LV_PART_MAIN);
+    lv_obj_set_style_border_color(cards[pos].card, getColor(spec.border), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].pressure, getColor(spec.psi), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].unit, getColor(spec.unit), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].posLabel, getColor(spec.pos), LV_PART_MAIN);
+    lv_obj_set_style_text_color(cards[pos].temperature, getColor(COL_TXT), LV_PART_MAIN);
+}
+
+static void applyBatteryStyle(const size_t pos, const int percent, const CardState state) {
+    uint32_t color = percent <= 10 ? COL_CRITRED
+       : percent <= 20 ? COL_RED
+       : percent <= 40 ? COL_AMBER
+       : COL_GREEN;
+    if (state == CARD_IDLE) {
+        color = COL_DIM;   // no data yet: neutral gray
+    }
+
+    const lv_color_t c = (state == CARD_STALE) ? staleFade(color) : lv_color_hex(color);
+    lv_obj_set_style_text_color(cards[pos].batteryPercentage, c, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(cards[pos].batteryIcon, c, LV_PART_INDICATOR);  // the fill
+    lv_obj_set_style_border_color(cards[pos].batteryIcon, c, LV_PART_MAIN);   // the outline
+}
+
+// age label: dim normally; faded amber when stale
+static void applyAgeStyle(const size_t pos, const CardState state) {
+    const lv_color_t c = (state == CARD_STALE) ? staleFade(COL_AMBER) : lv_color_hex(COL_DIM);
+    lv_obj_set_style_text_color(cards[pos].lastUpdated, c, LV_PART_MAIN);
+}
+
+// set a label's text only if it actually changed
+static void setLabelText(lv_obj_t *label, const char *text) {
+    if (strcmp(lv_label_get_text(label), text) != 0) {
+        lv_label_set_text(label, text);
+    }
+}
+
+void refreshUI() {
+    InMemoryRecord snapshot[SENSOR_COUNT];
+    portENTER_CRITICAL(&mutexLock);
+    memcpy(snapshot, inMemoryCache, sizeof(inMemoryCache));
+    portEXIT_CRITICAL(&mutexLock);
+
+    const uint32_t now = millis();
+    char text[16];
+
+    for (size_t pos = 0; pos < SENSOR_COUNT; pos += 1) {
+        const InMemoryRecord &record = snapshot[sensorIndexForPosition[pos]];
+        const CardState state = getCardState(record, now);
+
+        if (record.dataPacket.ok) {
+            if (record.dataPacket.pressureInPsi != TPMS_INVALID) {
+                snprintf(text, sizeof(text), "%d", record.dataPacket.pressureInPsi);
+            } else {
+                strlcpy(text, "__", sizeof(text));
+            }
+            setLabelText(cards[pos].pressure, text);
+
+            if (record.dataPacket.temperatureInCelsius != TPMS_INVALID) {
+                snprintf(text, sizeof(text), "%d°C", record.dataPacket.temperatureInCelsius);
+            } else {
+                strlcpy(text, "--°C", sizeof(text));
+            }
+            setLabelText(cards[pos].temperature, text);
+
+            snprintf(text, sizeof(text), "%d%%", record.dataPacket.batteryPercent);
+            setLabelText(cards[pos].batteryPercentage, text);
+            lv_bar_set_value(cards[pos].batteryIcon, record.dataPacket.batteryPercent, LV_ANIM_OFF);
+
+            const uint32_t age = now - record.lastUpdated;
+            if (age < 60000UL) {
+                snprintf(text, sizeof(text), "%lus", age / 1000UL);
+            }
+            else if (age < 3600000UL) {
+                snprintf(text, sizeof(text), "%lum", age / 60000UL);
+            }
+            else {
+                snprintf(text, sizeof(text), "%luh", age / 3600000UL);
+            }
+            setLabelText(cards[pos].lastUpdated, text);
+        }
+    }
+}
+
 void setup() {
     Serial.begin(115200);
 
@@ -247,6 +447,8 @@ void setup() {
     lv_display_set_buffers(display, tempCanvasBuffer, nullptr, sizeof(tempCanvasBuffer), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     ui_init();
+    bindCards();
+    refreshUI();
 
     NimBLEDevice::init("");
     NimBLEScan *scan = NimBLEDevice::getScan();
@@ -259,6 +461,14 @@ void setup() {
 }
 
 void loop() {
+    static uint32_t lastRefreshed = 0;
+    const uint32_t now = millis();
+
+    if (now - lastRefreshed >= 400) {
+        lastRefreshed = now;
+        refreshUI();
+    }
+
     ui_tick();
     lv_timer_handler();
     delay(5);
