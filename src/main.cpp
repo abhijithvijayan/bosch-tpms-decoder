@@ -197,6 +197,24 @@ class TpmsScanCallback : public NimBLEScanCallbacks {
     }
 };
 
+#define COL_BG        0x0B0E14   // screen background
+#define COL_CARD      0x161D2B   // card fill, normal
+#define COL_CARD_BD   0x232C40   // card border, normal
+#define COL_ALERT_BG  0x2A1113   // card fill, low/puncture
+#define COL_ALERT_BD  0x7F1D1D   // card border, low/puncture
+#define COL_WARN_BG   0x2A2410   // card fill, overinflated
+#define COL_WARN_BD   0x7A5A12   // card border, overinflated
+#define COL_TXT       0xFFFFFF   // psi number, temp
+#define COL_MUTE      0x8A93A6   // "psi" unit
+#define COL_DIM       0x5B6373   // age label, idle battery
+#define COL_POS       0x5DA3FF   // FL/FR/RL/RR (blue)
+#define COL_RED       0xFF5A5A   // low psi, battery ≤20%
+#define COL_CRITRED   0xD32030   // battery ≤10%
+#define COL_AMBER     0xFACC15   // high psi, battery ≤40%
+#define COL_GREEN     0x4ADE80   // battery OK
+#define COL_PILL_OK   0x166534   // header pill, all-OK green
+#define COL_PILL_BAD  0xB91C1C   // header pill, alert red
+
 void setup() {
     Serial.begin(115200);
 
