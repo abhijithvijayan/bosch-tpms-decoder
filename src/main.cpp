@@ -401,7 +401,7 @@ void refreshUI() {
             if (record.dataPacket.pressureInPsi != TPMS_INVALID) {
                 snprintf(text, sizeof(text), "%d", record.dataPacket.pressureInPsi);
             } else {
-                strlcpy(text, "__", sizeof(text));
+                strlcpy(text, "--", sizeof(text));
             }
             setLabelText(cards[pos].pressure, text);
 

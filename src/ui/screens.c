@@ -68,17 +68,18 @@ void create_screen_main() {
                     {
                         lv_obj_t *parent_obj = obj;
                         {
+                            // Header Label
                             lv_obj_t *obj = lv_label_create(parent_obj);
-                            objects.obj0 = obj;
+                            objects.header_label = obj;
                             lv_obj_set_pos(obj, -2, -4);
                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                             lv_obj_set_style_text_color(obj, lv_color_hex(0xcdd3df), LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_label_set_text_static(obj, "TPMS");
                         }
                         {
-                            // Toast
+                            // Header Toast Container
                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                            objects.toast = obj;
+                            objects.header_toast_container = obj;
                             lv_obj_set_pos(obj, 180, -10);
                             lv_obj_set_size(obj, LV_SIZE_CONTENT, 16);
                             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -96,8 +97,9 @@ void create_screen_main() {
                             {
                                 lv_obj_t *parent_obj = obj;
                                 {
+                                    // Header Toast Label
                                     lv_obj_t *obj = lv_label_create(parent_obj);
-                                    objects.obj1 = obj;
+                                    objects.header_toast_label = obj;
                                     lv_obj_set_pos(obj, 207, -5);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -307,7 +309,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj2 = obj;
+                                                            objects.obj0 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 100, LV_ANIM_OFF);
@@ -325,7 +327,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj3 = obj;
+                                                            objects.obj1 = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -524,7 +526,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj4 = obj;
+                                                            objects.obj2 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 34, LV_ANIM_OFF);
@@ -542,7 +544,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj5 = obj;
+                                                            objects.obj3 = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -741,7 +743,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj6 = obj;
+                                                            objects.obj4 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 31, LV_ANIM_OFF);
@@ -759,7 +761,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj7 = obj;
+                                                            objects.obj5 = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -960,7 +962,7 @@ void create_screen_main() {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj8 = obj;
+                                                            objects.obj6 = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 80, LV_ANIM_OFF);
@@ -978,7 +980,7 @@ void create_screen_main() {
                                                         }
                                                         {
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj9 = obj;
+                                                            objects.obj7 = obj;
                                                             lv_obj_set_pos(obj, 20, 4);
                                                             lv_obj_set_size(obj, 2, 3);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -1012,9 +1014,9 @@ void delete_screen_main() {
     objects.main = 0;
     objects.main_container = 0;
     objects.header = 0;
-    objects.obj0 = 0;
-    objects.toast = 0;
-    objects.obj1 = 0;
+    objects.header_label = 0;
+    objects.header_toast_container = 0;
+    objects.header_toast_label = 0;
     objects.cards = 0;
     objects.sensor_1_card = 0;
     objects.sensor_1_card_top_row = 0;
@@ -1028,8 +1030,8 @@ void delete_screen_main() {
     objects.sensor_1_card_bottom_row_battery_group = 0;
     objects.sensor_1_card_bottom_row_battery_percentage = 0;
     objects.sensor_1_card_bottom_row_battery_icon = 0;
-    objects.obj2 = 0;
-    objects.obj3 = 0;
+    objects.obj0 = 0;
+    objects.obj1 = 0;
     objects.sensor_2_card = 0;
     objects.sensor_2_card_top_row = 0;
     objects.sensor_2_card_top_row_label = 0;
@@ -1042,8 +1044,8 @@ void delete_screen_main() {
     objects.sensor_2_card_bottom_row_battery_group = 0;
     objects.sensor_2_card_bottom_row_battery_percentage = 0;
     objects.sensor_2_card_bottom_row_battery_icon = 0;
-    objects.obj4 = 0;
-    objects.obj5 = 0;
+    objects.obj2 = 0;
+    objects.obj3 = 0;
     objects.sensor_3_card = 0;
     objects.sensor_3_card_top_row = 0;
     objects.sensor_3_card_top_row_label = 0;
@@ -1056,8 +1058,8 @@ void delete_screen_main() {
     objects.sensor_3_card_bottom_row_battery_group = 0;
     objects.sensor_3_card_bottom_row_battery_percentage = 0;
     objects.sensor_3_card_bottom_row_battery_icon = 0;
-    objects.obj6 = 0;
-    objects.obj7 = 0;
+    objects.obj4 = 0;
+    objects.obj5 = 0;
     objects.sensor_4_card = 0;
     objects.sensor_4_card_top_row = 0;
     objects.sensor_4_card_top_row_label = 0;
@@ -1070,8 +1072,8 @@ void delete_screen_main() {
     objects.sensor_4_card_bottom_row_battery_group = 0;
     objects.sensor_4_card_bottom_row_battery_percentage = 0;
     objects.sensor_4_card_bottom_row_battery_icon = 0;
-    objects.obj8 = 0;
-    objects.obj9 = 0;
+    objects.obj6 = 0;
+    objects.obj7 = 0;
 }
 
 void tick_screen_main() {
