@@ -215,6 +215,22 @@ class TpmsScanCallback : public NimBLEScanCallbacks {
 #define COL_PILL_OK   0x166534   // header pill, all-OK green
 #define COL_PILL_BAD  0xB91C1C   // header pill, alert red
 
+#define PLACARD_PSI       32   // recommended cold pressure — sticker on driver's door
+#define SIDEWALL_MAX_PSI  51   // tyre's printed limit — "MAX INFLATION PRESSURE" on sidewall
+
+// LOW = 20% below recommended - EU rule ECE R141
+#define PSI_LOW   (PLACARD_PSI * 80 / 100)    // 32 -> 25
+
+// HIGH = 40% above recommended. Hot tyres legitimately run ~15% over (32 -> ~37),
+// so +40% is far enough out to never false-alarm, yet still below the sidewall limit.
+#define PSI_HIGH  (PLACARD_PSI * 140 / 100)   // 32 -> 44
+
+// compile-time sanity: refuse to build if the math ever lands somewhere unsafe
+static_assert(PSI_HIGH < SIDEWALL_MAX_PSI, "PSI_HIGH must stay below the tyre's printed max");
+static_assert(PSI_LOW  < PLACARD_PSI,      "PSI_LOW must be below the recommended pressure");
+
+#define STALE_MS  (30UL * 60UL * 1000UL)      // 30 min without a frame means data is stale
+
 void setup() {
     Serial.begin(115200);
 
