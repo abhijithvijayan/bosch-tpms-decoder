@@ -1176,7 +1176,7 @@
                               "type": "LVGLLabelWidget",
                               "left": 0,
                               "top": 0,
-                              "width": 18,
+                              "width": 19,
                               "height": 16,
                               "customInputs": [],
                               "customOutputs": [],
@@ -1216,7 +1216,7 @@
                               },
                               "group": "",
                               "groupIndex": 0,
-                              "text": "RL",
+                              "text": "FR",
                               "textType": "literal",
                               "longMode": "WRAP",
                               "recolor": false
