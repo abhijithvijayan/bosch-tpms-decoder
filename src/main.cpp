@@ -291,7 +291,8 @@ struct CardWidgets {
     lv_obj_t *unit;
     lv_obj_t *lastUpdated;
     lv_obj_t *batteryPercentage;
-    lv_obj_t *batteryIcon;
+    lv_obj_t *batteryBar;   // the lv_bar inside the icon — value + fill + outline
+    lv_obj_t *batteryNib;   // the terminal bump — recolored with the bar
 };
 
 static CardWidgets cards[SENSOR_COUNT];
@@ -305,7 +306,8 @@ static void bindCards() {
       .unit              = objects.sensor_1_card_middle_row_pressure_unit,
       .lastUpdated       = objects.sensor_1_card_bottom_row_last_updated,
       .batteryPercentage = objects.sensor_1_card_bottom_row_battery_percentage,
-      .batteryIcon       = objects.sensor_1_card_bottom_row_battery_icon,
+      .batteryBar        = objects.sensor_1_card_bottom_row_battery_icon_bar,
+      .batteryNib        = objects.sensor_1_card_bottom_row_battery_icon_nub,
   };
   cards[1] = {
       .card              = objects.sensor_2_card,
@@ -315,7 +317,8 @@ static void bindCards() {
       .unit              = objects.sensor_2_card_middle_row_pressure_unit,
       .lastUpdated       = objects.sensor_2_card_bottom_row_last_updated,
       .batteryPercentage = objects.sensor_2_card_bottom_row_battery_percentage,
-      .batteryIcon       = objects.sensor_2_card_bottom_row_battery_icon,
+      .batteryBar        = objects.sensor_2_card_bottom_row_battery_icon_bar,
+      .batteryNib        = objects.sensor_2_card_bottom_row_battery_icon_nub,
   };
   cards[2] = {
       .card              = objects.sensor_3_card,
@@ -325,7 +328,8 @@ static void bindCards() {
       .unit              = objects.sensor_3_card_middle_row_pressure_unit,
       .lastUpdated       = objects.sensor_3_card_bottom_row_last_updated,
       .batteryPercentage = objects.sensor_3_card_bottom_row_battery_percentage,
-      .batteryIcon       = objects.sensor_3_card_bottom_row_battery_icon,
+      .batteryBar        = objects.sensor_3_card_bottom_row_battery_icon_bar,
+      .batteryNib        = objects.sensor_3_card_bottom_row_battery_icon_nub,
   };
   cards[3] = {
       .card              = objects.sensor_4_card,
@@ -335,7 +339,8 @@ static void bindCards() {
       .unit              = objects.sensor_4_card_middle_row_pressure_unit,
       .lastUpdated       = objects.sensor_4_card_bottom_row_last_updated,
       .batteryPercentage = objects.sensor_4_card_bottom_row_battery_percentage,
-      .batteryIcon       = objects.sensor_4_card_bottom_row_battery_icon,
+      .batteryBar        = objects.sensor_4_card_bottom_row_battery_icon_bar,
+      .batteryNib        = objects.sensor_4_card_bottom_row_battery_icon_nub,
   };
 }
 
@@ -367,8 +372,9 @@ static void applyBatteryStyle(const size_t pos, const int percent, const CardSta
 
     const lv_color_t c = (state == CARD_STALE) ? staleFade(color) : lv_color_hex(color);
     lv_obj_set_style_text_color(cards[pos].batteryPercentage, c, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(cards[pos].batteryIcon, c, LV_PART_INDICATOR);  // the fill
-    lv_obj_set_style_border_color(cards[pos].batteryIcon, c, LV_PART_MAIN);   // the outline
+    lv_obj_set_style_bg_color(cards[pos].batteryBar, c, LV_PART_INDICATOR);  // the fill
+    lv_obj_set_style_border_color(cards[pos].batteryBar, c, LV_PART_MAIN);   // the outline
+    lv_obj_set_style_bg_color(cards[pos].batteryNib, c, LV_PART_MAIN);       // nub follows
 }
 
 // age label: dim normally; faded amber when stale
@@ -385,6 +391,7 @@ static void setLabelText(lv_obj_t *label, const char *text) {
 }
 
 void refreshUI() {
+    // Take a copy of the current records so that we don't try to read mid write action.
     InMemoryRecord snapshot[SENSOR_COUNT];
     portENTER_CRITICAL(&mutexLock);
     memcpy(snapshot, inMemoryCache, sizeof(inMemoryCache));
@@ -392,9 +399,24 @@ void refreshUI() {
 
     const uint32_t now = millis();
     char text[16];
+    int highCount = 0;
+    int lowCount = 0;
+    int idleCount = 0;
+    int staleCount = 0;
 
     for (size_t pos = 0; pos < SENSOR_COUNT; pos += 1) {
         const InMemoryRecord &record = snapshot[sensorIndexForPosition[pos]];
+
+        const CardState state = getCardState(record, now);
+        if (state == CARD_HIGH) {
+            highCount += 1;
+        } else if (state == CARD_LOW) {
+            lowCount += 1;
+        } else if (state == CARD_STALE) {
+            staleCount += 1;
+        } else if (state == CARD_IDLE) {
+            idleCount += 1;
+        }
 
         if (record.dataPacket.ok) {
             if (record.dataPacket.pressureInPsi != TPMS_INVALID) {
@@ -413,7 +435,7 @@ void refreshUI() {
 
             snprintf(text, sizeof(text), "%d%%", record.dataPacket.batteryPercent);
             setLabelText(cards[pos].batteryPercentage, text);
-            lv_bar_set_value(cards[pos].batteryIcon, record.dataPacket.batteryPercent, LV_ANIM_OFF);
+            lv_bar_set_value(cards[pos].batteryBar, record.dataPacket.batteryPercent, LV_ANIM_OFF);
 
             const uint32_t age = now - record.lastUpdated;
             if (age < 60000UL) {
@@ -426,17 +448,49 @@ void refreshUI() {
                 snprintf(text, sizeof(text), "%luh", age / 3600000UL);
             }
             setLabelText(cards[pos].lastUpdated, text);
+        } else {
+            setLabelText(cards[pos].pressure, "--");
+            setLabelText(cards[pos].temperature, "--°C");
+            setLabelText(cards[pos].batteryPercentage, "--%");
+            setLabelText(cards[pos].lastUpdated, "--");
+            lv_bar_set_value(cards[pos].batteryBar, 0, LV_ANIM_OFF);
         }
 
-        const CardState state = getCardState(record, now);
         applyCardStyle(pos, state);
         applyBatteryStyle(
             pos,
-            // For now, if we don't have data for battery, we simply show 100%
-            record.dataPacket.ok ? record.dataPacket.batteryPercent : 100,
+            // For now, if we don't have data for battery, we simply show 0%
+            record.dataPacket.ok ? record.dataPacket.batteryPercent : 0,
             state
         );
         applyAgeStyle(pos, state);
+    }
+
+    if (staleCount + idleCount == SENSOR_COUNT) {
+        lv_obj_add_flag(objects.header_toast_container, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        uint32_t pillColor;
+        const char *pillText;
+        if (lowCount > 0 && highCount > 0) {
+            pillColor = COL_PILL_BAD;
+            pillText = "Multiple Issues Detected";
+        }
+        else if (lowCount) {
+            pillColor = COL_PILL_BAD;
+            pillText = "Low Pressure Detected";
+        }
+        else if (highCount) {
+            pillColor = COL_WARN_BD;
+            pillText = "High Pressure Detected";
+        }
+        else {
+            pillColor = COL_PILL_OK;
+            pillText = "All tires OK";
+        }
+
+        lv_obj_set_style_bg_color(objects.header_toast_container, lv_color_hex(pillColor), LV_PART_MAIN);
+        setLabelText(objects.header_toast_label, pillText);
+        lv_obj_remove_flag(objects.header_toast_container, LV_OBJ_FLAG_HIDDEN);
     }
 }
 

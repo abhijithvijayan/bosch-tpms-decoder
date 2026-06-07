@@ -35,8 +35,8 @@ typedef struct _objects_t {
     lv_obj_t *sensor_1_card_bottom_row_battery_group;
     lv_obj_t *sensor_1_card_bottom_row_battery_percentage;
     lv_obj_t *sensor_1_card_bottom_row_battery_icon;
-    lv_obj_t *obj0;
-    lv_obj_t *obj1;
+    lv_obj_t *sensor_1_card_bottom_row_battery_icon_bar;
+    lv_obj_t *sensor_1_card_bottom_row_battery_icon_nub;
     lv_obj_t *sensor_2_card;
     lv_obj_t *sensor_2_card_top_row;
     lv_obj_t *sensor_2_card_top_row_label;
@@ -49,8 +49,8 @@ typedef struct _objects_t {
     lv_obj_t *sensor_2_card_bottom_row_battery_group;
     lv_obj_t *sensor_2_card_bottom_row_battery_percentage;
     lv_obj_t *sensor_2_card_bottom_row_battery_icon;
-    lv_obj_t *obj2;
-    lv_obj_t *obj3;
+    lv_obj_t *sensor_2_card_bottom_row_battery_icon_bar;
+    lv_obj_t *sensor_2_card_bottom_row_battery_icon_nub;
     lv_obj_t *sensor_3_card;
     lv_obj_t *sensor_3_card_top_row;
     lv_obj_t *sensor_3_card_top_row_label;
@@ -63,8 +63,8 @@ typedef struct _objects_t {
     lv_obj_t *sensor_3_card_bottom_row_battery_group;
     lv_obj_t *sensor_3_card_bottom_row_battery_percentage;
     lv_obj_t *sensor_3_card_bottom_row_battery_icon;
-    lv_obj_t *obj4;
-    lv_obj_t *obj5;
+    lv_obj_t *sensor_3_card_bottom_row_battery_icon_bar;
+    lv_obj_t *sensor_3_card_bottom_row_battery_icon_nub;
     lv_obj_t *sensor_4_card;
     lv_obj_t *sensor_4_card_top_row;
     lv_obj_t *sensor_4_card_top_row_label;
@@ -77,8 +77,8 @@ typedef struct _objects_t {
     lv_obj_t *sensor_4_card_bottom_row_battery_group;
     lv_obj_t *sensor_4_card_bottom_row_battery_percentage;
     lv_obj_t *sensor_4_card_bottom_row_battery_icon;
-    lv_obj_t *obj6;
-    lv_obj_t *obj7;
+    lv_obj_t *sensor_4_card_bottom_row_battery_icon_bar;
+    lv_obj_t *sensor_4_card_bottom_row_battery_icon_nub;
 } objects_t;
 
 extern objects_t objects;

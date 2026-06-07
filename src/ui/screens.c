@@ -308,8 +308,9 @@ void create_screen_main() {
                                                     {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
+                                                            // Sensor 1 Card Bottom Row Battery Icon Bar
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj0 = obj;
+                                                            objects.sensor_1_card_bottom_row_battery_icon_bar = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 100, LV_ANIM_OFF);
@@ -326,8 +327,9 @@ void create_screen_main() {
                                                             lv_obj_set_style_radius(obj, 1, LV_PART_INDICATOR | LV_STATE_DEFAULT);
                                                         }
                                                         {
+                                                            // Sensor 1 Card Bottom Row Battery Icon Nub
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj1 = obj;
+                                                            objects.sensor_1_card_bottom_row_battery_icon_nub = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -525,8 +527,9 @@ void create_screen_main() {
                                                     {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
+                                                            // Sensor 2 Card Bottom Row Battery Icon Bar
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj2 = obj;
+                                                            objects.sensor_2_card_bottom_row_battery_icon_bar = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 34, LV_ANIM_OFF);
@@ -543,8 +546,9 @@ void create_screen_main() {
                                                             lv_obj_set_style_radius(obj, 1, LV_PART_INDICATOR | LV_STATE_DEFAULT);
                                                         }
                                                         {
+                                                            // Sensor 2 Card Bottom Row Battery Icon Nub
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj3 = obj;
+                                                            objects.sensor_2_card_bottom_row_battery_icon_nub = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -742,8 +746,9 @@ void create_screen_main() {
                                                     {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
+                                                            // Sensor 3 Card Bottom Row Battery Icon Bar
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj4 = obj;
+                                                            objects.sensor_3_card_bottom_row_battery_icon_bar = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 31, LV_ANIM_OFF);
@@ -760,8 +765,9 @@ void create_screen_main() {
                                                             lv_obj_set_style_radius(obj, 1, LV_PART_INDICATOR | LV_STATE_DEFAULT);
                                                         }
                                                         {
+                                                            // Sensor 3 Card Bottom Row Battery Icon Nub
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj5 = obj;
+                                                            objects.sensor_3_card_bottom_row_battery_icon_nub = obj;
                                                             lv_obj_set_pos(obj, 20, 3);
                                                             lv_obj_set_size(obj, 2, 4);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -961,8 +967,9 @@ void create_screen_main() {
                                                     {
                                                         lv_obj_t *parent_obj = obj;
                                                         {
+                                                            // Sensor 4 Card Bottom Row Battery Icon Bar
                                                             lv_obj_t *obj = lv_bar_create(parent_obj);
-                                                            objects.obj6 = obj;
+                                                            objects.sensor_4_card_bottom_row_battery_icon_bar = obj;
                                                             lv_obj_set_pos(obj, 0, 0);
                                                             lv_obj_set_size(obj, 20, 10);
                                                             lv_bar_set_value(obj, 80, LV_ANIM_OFF);
@@ -979,8 +986,9 @@ void create_screen_main() {
                                                             lv_obj_set_style_radius(obj, 1, LV_PART_INDICATOR | LV_STATE_DEFAULT);
                                                         }
                                                         {
+                                                            // Sensor 4 Card Bottom Row Battery Icon Nub
                                                             lv_obj_t *obj = lv_obj_create(parent_obj);
-                                                            objects.obj7 = obj;
+                                                            objects.sensor_4_card_bottom_row_battery_icon_nub = obj;
                                                             lv_obj_set_pos(obj, 20, 4);
                                                             lv_obj_set_size(obj, 2, 3);
                                                             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -1030,8 +1038,8 @@ void delete_screen_main() {
     objects.sensor_1_card_bottom_row_battery_group = 0;
     objects.sensor_1_card_bottom_row_battery_percentage = 0;
     objects.sensor_1_card_bottom_row_battery_icon = 0;
-    objects.obj0 = 0;
-    objects.obj1 = 0;
+    objects.sensor_1_card_bottom_row_battery_icon_bar = 0;
+    objects.sensor_1_card_bottom_row_battery_icon_nub = 0;
     objects.sensor_2_card = 0;
     objects.sensor_2_card_top_row = 0;
     objects.sensor_2_card_top_row_label = 0;
@@ -1044,8 +1052,8 @@ void delete_screen_main() {
     objects.sensor_2_card_bottom_row_battery_group = 0;
     objects.sensor_2_card_bottom_row_battery_percentage = 0;
     objects.sensor_2_card_bottom_row_battery_icon = 0;
-    objects.obj2 = 0;
-    objects.obj3 = 0;
+    objects.sensor_2_card_bottom_row_battery_icon_bar = 0;
+    objects.sensor_2_card_bottom_row_battery_icon_nub = 0;
     objects.sensor_3_card = 0;
     objects.sensor_3_card_top_row = 0;
     objects.sensor_3_card_top_row_label = 0;
@@ -1058,8 +1066,8 @@ void delete_screen_main() {
     objects.sensor_3_card_bottom_row_battery_group = 0;
     objects.sensor_3_card_bottom_row_battery_percentage = 0;
     objects.sensor_3_card_bottom_row_battery_icon = 0;
-    objects.obj4 = 0;
-    objects.obj5 = 0;
+    objects.sensor_3_card_bottom_row_battery_icon_bar = 0;
+    objects.sensor_3_card_bottom_row_battery_icon_nub = 0;
     objects.sensor_4_card = 0;
     objects.sensor_4_card_top_row = 0;
     objects.sensor_4_card_top_row_label = 0;
@@ -1072,8 +1080,8 @@ void delete_screen_main() {
     objects.sensor_4_card_bottom_row_battery_group = 0;
     objects.sensor_4_card_bottom_row_battery_percentage = 0;
     objects.sensor_4_card_bottom_row_battery_icon = 0;
-    objects.obj6 = 0;
-    objects.obj7 = 0;
+    objects.sensor_4_card_bottom_row_battery_icon_bar = 0;
+    objects.sensor_4_card_bottom_row_battery_icon_nub = 0;
 }
 
 void tick_screen_main() {
