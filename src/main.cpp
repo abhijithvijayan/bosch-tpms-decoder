@@ -54,6 +54,11 @@ static_assert(PSI_LOW  < RECOMMENDED_PSI, "PSI_LOW must be below the recommended
 
 #define STALE_MS  (10UL * 60UL * 1000UL) // 10 min without a frame means data is stale
 
+// Loop timing
+#define UI_REFRESH_INTERVAL_MS 400 // how often loop() repaints the cards from the cache
+#define THERMAL_CHECK_INTERVAL_MS 5000 // how often the thermal backstop samples the die temp
+#define LOOP_YIELD_MS 5 // cooperative yield per loop pass (keeps BLE/idle/watchdog alive)
+
 // Color System
 #define COLOR_BACKGROUND 0x0B0E14 // screen background
 #define COLOR_CARD 0x161D2B // card fill, normal
@@ -258,9 +263,9 @@ static DataPacket decodeFrame(const uint8_t *rawAdv, size_t len) {
    =========================================================================== */
 
 static int getSensorReadingMapIndex(const char *mac) {
-    for (int index = 0; index < SENSOR_COUNT; index += 1) {
+    for (size_t index = 0; index < SENSOR_COUNT; index += 1) {
         if (strcasecmp(WHITELISTED_SENSOR_MAC_ADDRESSES[index], mac) == 0) {
-            return index;
+            return (int)index;
         }
     }
 
@@ -332,11 +337,11 @@ static CardState getCardState(const InMemoryRecord &record, const uint32_t now) 
     }
 
     const int psi = record.dataPacket.pressureInPsi;
-    if (record.dataPacket.pressureInPsi != TPMS_INVALID && psi <= PSI_LOW) {
+    if (psi != TPMS_INVALID && psi <= PSI_LOW) {
         return CARD_LOW;
     }
 
-    if (record.dataPacket.pressureInPsi != TPMS_INVALID && psi >= PSI_HIGH) {
+    if (psi != TPMS_INVALID && psi >= PSI_HIGH) {
         return CARD_HIGH;
     }
 
@@ -555,7 +560,7 @@ void refreshUI() {
 
 static void handleDeviceThermal(const uint32_t now) {
     static uint32_t last = 0;
-    if (now - last < 5000) {
+    if (now - last < THERMAL_CHECK_INTERVAL_MS) {
         return;
     }
 
@@ -615,7 +620,7 @@ void loop() {
     static uint32_t lastRefreshed = 0;
     const uint32_t now = millis();
 
-    if (now - lastRefreshed >= 400) {
+    if (now - lastRefreshed >= UI_REFRESH_INTERVAL_MS) {
         lastRefreshed = now;
         refreshUI();
     }
@@ -623,5 +628,5 @@ void loop() {
     handleDeviceThermal(now);
     ui_tick();
     lv_timer_handler();
-    delay(5); // yield to the BLE + idle tasks (single core) and pace LVGL ~5ms
+    delay(LOOP_YIELD_MS); // yield to the BLE + idle tasks (single core) and pace LVGL
 }
