@@ -494,6 +494,38 @@ void refreshUI() {
     }
 }
 
+// Backlight brightness (8-bit PWM duty), written as % and resolved to duty
+#define BACKLIGHT_PERCENT 70 // Reduced 70% brightness
+#define BACKLIGHT_DIM_PERCENT 15 // dimmed when overheating
+#define BACKLIGHT_NORMAL_VALUE ((255 * BACKLIGHT_PERCENT) / 100)
+#define BACKLIGHT_DIM_VALUE ((255 * BACKLIGHT_DIM_PERCENT) / 100)
+
+// The panel blanks above its clearing temperature; dim the backlight before that, restore once cool.
+#define PANEL_BLACKOUT_C            60.0f
+#define BACKLIGHT_DIM_ABOVE_C      (PANEL_BLACKOUT_C - 10.0f)  // dim 10° before blackout
+#define BACKLIGHT_RESTORE_BELOW_C  (PANEL_BLACKOUT_C - 20.0f)  // restore 20° below
+
+static void handleDeviceThermal(const uint32_t now) {
+    static uint32_t last = 0;
+    if (now - last < 5000) {
+        return;
+    }
+
+    last = now;
+
+    static bool throttled = false;
+    const float temperature = temperatureRead();
+    Serial.printf("Board Temperature: %.1f C%s\n", temperature, throttled ? " (throttled)" : "");
+
+    if (!throttled && temperature >= BACKLIGHT_DIM_ABOVE_C) {
+        ledcWrite(LCD_BL, BACKLIGHT_DIM_VALUE);
+        throttled = true;
+    } else if (throttled && temperature <= BACKLIGHT_RESTORE_BELOW_C) {
+        ledcWrite(LCD_BL, BACKLIGHT_NORMAL_VALUE);
+        throttled = false;
+    }
+}
+
 void setup() {
     Serial.begin(115200);
 
@@ -502,7 +534,7 @@ void setup() {
 
     // Backlight via PWM instead of full-on: ~70% brightness draws less LED current (less heat behind the panel).
     ledcAttach(LCD_BL, 5000, 8); // 5 kHz carrier, 8-bit duty
-    ledcWrite(LCD_BL, 180); // 180/255 ≈ 70%
+    ledcWrite(LCD_BL, BACKLIGHT_NORMAL_VALUE);
 
     gfx->begin(); // SPI init + ST7789 init sequence + reset pulse
     gfx->fillScreen(RGB565_BLACK);
@@ -536,6 +568,7 @@ void loop() {
         refreshUI();
     }
 
+    handleDeviceThermal(now);
     ui_tick();
     lv_timer_handler();
     delay(5); // yield to the BLE + idle tasks (single core) and pace LVGL ~5ms
