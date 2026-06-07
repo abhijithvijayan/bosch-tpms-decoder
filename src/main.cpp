@@ -94,7 +94,7 @@ static bool aesDecryptBlock(const uint8_t cipher[16], uint8_t plain[16]) {
 }
 
 static DataPacket decodeFrame(const uint8_t *rawAdv, size_t len) {
-    DataPacket dp {
+    DataPacket dataPacket {
         false,
         TPMS_INVALID,
         TPMS_INVALID,
@@ -103,36 +103,36 @@ static DataPacket decodeFrame(const uint8_t *rawAdv, size_t len) {
 
     // ciphertext lives at [15..31]
     if (len < 31) {
-        return dp;
+        return dataPacket;
     }
 
-    uint8_t pt[16];
-    if (!aesDecryptBlock(rawAdv + 15, pt)) {
-        return dp;
+    uint8_t decryptedPayload[16];
+    if (!aesDecryptBlock(rawAdv + 15, decryptedPayload)) {
+        return dataPacket;
     }
 
     // structural check: header 0x16, trailer 0x15 0x14 — rejects non-TPMS junk on 0xFFE0
-    if (pt[0] != 0x16 || pt[14] != 0x15 || pt[15] != 0x14) {
-        return dp;
+    if (decryptedPayload[0] != 0x16 || decryptedPayload[14] != 0x15 || decryptedPayload[15] != 0x14) {
+        return dataPacket;
     }
 
-    dp.ok = true;
+    dataPacket.ok = true;
 
-    uint16_t t = leU16(&pt[1]);        // temp, valid [-40, 125] °C
+    uint16_t t = leU16(&decryptedPayload[1]);        // temp, valid [-40, 125] °C
     if (t != 0xFFFF) {
         const int c = decodeTemp(t);
-        dp.temperatureInCelsius = (c < -40 || c > 125) ? TPMS_INVALID : c;
+        dataPacket.temperatureInCelsius = (c < -40 || c > 125) ? TPMS_INVALID : c;
     }
 
-    uint16_t pr = leU16(&pt[3]);       // pressure, valid [0, 217] PSI
+    uint16_t pr = leU16(&decryptedPayload[3]);       // pressure, valid [0, 217] PSI
     if (pr != 0xFFFF) {
         const int p = decodePressure(pr);
-        dp.pressureInPsi = (p < 0 || p > 217) ? TPMS_INVALID : p;
+        dataPacket.pressureInPsi = (p < 0 || p > 217) ? TPMS_INVALID : p;
     }
 
-    dp.batteryPercent = min(pt[5] & 0xFF, 100);   // battery, clamp ≤100
+    dataPacket.batteryPercent = min(decryptedPayload[5] & 0xFF, 100);   // battery, clamp ≤100
 
-    return dp;
+    return dataPacket;
 }
 
 class TpmsScanCallback : public NimBLEScanCallbacks {
@@ -142,14 +142,14 @@ public : void onResult(const NimBLEAdvertisedDevice *dev) override {
         }
 
         const std::vector<uint8_t> &payload = dev->getPayload();
-        DataPacket dp = decodeFrame(payload.data(), payload.size());
-        if (!dp.ok) {
+        DataPacket dataPacket = decodeFrame(payload.data(), payload.size());
+        if (!dataPacket.ok) {
             return;
         }
 
         Serial.printf("[%s] temp %d C  press %d PSI  batt %d%%  RSSI %d\n",
                       dev->getAddress().toString().c_str(),
-                      dp.temperatureInCelsius, dp.pressureInPsi, dp.batteryPercent, dev->getRSSI());
+                      dataPacket.temperatureInCelsius, dataPacket.pressureInPsi, dataPacket.batteryPercent, dev->getRSSI());
     }
 };
 
